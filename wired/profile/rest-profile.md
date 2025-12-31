@@ -5,7 +5,7 @@ When you install it for the first time, it already comes with the default profil
 
 When a default profile is created, the panel switches to that new profile, which is based on defaults.
 
-### Create a profile called main
+### Create a second profile called main
 
 ```txt
 0000   1c 00 a0 09 d5 81 82 80 ff ff 00 00 00 00 1b 00   ................
@@ -102,7 +102,7 @@ Response:
 0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
 ```
 
-### Changing from the main profile to the so-called Profile1.
+### Changing from the second profile called main to the so-called Profile1 (first profile).
 
 Request:
 
@@ -186,7 +186,7 @@ Response:
 0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
 ```
 
-### Returning from Profile1 to main
+### Returning from Profile1 (first profile) to main (second profile)
 
 Request:
 
@@ -270,34 +270,183 @@ Response:
 0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
 ```
 
-### Rename a profile called main to main2
+### Rename second profile called main to main2
 
-Nothing happens because the profiles are actually numbered from 1 to 6; the name is only for display in the panel
+Nothing happens because the profiles are actually numbered; the name is only for display in the panel
 and the profiles are stored locally by the panel. When a profile is chosen, the panel applies that profile to the mouse
 
 The mouse apparently only supports one profile at a time.
 
-### Delete profile main
+### Delete second profile called main
 Request:
 
 ```txt
-
+0000   1c 00 a0 b9 50 83 82 80 ff ff 00 00 00 00 1b 00   ....P...........
+0010   00 03 00 01 00 00 02 0e 00 00 00 00 21 09 0c 03   ............!...
+0020   02 00 06 00 0c 0a 01 fe 01 fe                     ..........
 ```
 
 Response:
 
 ```txt
-
+0000   1c 00 a0 b9 50 83 82 80 ff ff 00 00 00 00 08 00   ....P...........
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
 ```
 
 Request:
 
 ```txt
-
+0000   1c 00 a0 49 11 84 82 80 ff ff 00 00 00 00 1b 00   ...I............
+0010   00 03 00 01 00 00 02 3c 00 00 00 00 21 09 04 03   .......<....!...
+0020   02 00 34 00 04 38 01 00 01 3f 20 20 12 25 38 4b   ..4..8...?  .%8K
+0030   75 81 01 01 00 00 00 00 00 01 00 00 03 ff 00 00   u...............
+0040   00 ff 00 00 00 ff ff ff 00 00 ff ff ff 00 ff ff   ................
+0050   40 00 ff ff ff 02 0f 6b                           @......k
 ```
 
 Response:
 
 ```txt
+0000   1c 00 a0 49 11 84 82 80 ff ff 00 00 00 00 08 00   ...I............
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
 
+Request:
+
+```txt
+0000   1c 00 a0 49 11 84 82 80 ff ff 00 00 00 00 1b 00   ...I............
+0010   00 03 00 01 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
+0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 04 01   .......0........
+0030   e0                                                .
+```
+
+Response:
+
+```txt
+0000   1c 00 a0 49 11 84 82 80 ff ff 00 00 00 00 08 00   ...I............
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 a0 b9 50 83 82 80 ff ff 00 00 00 00 1b 00   ....P...........
+0010   00 03 00 01 00 00 02 11 00 00 00 00 21 09 06 03   ............!...
+0020   02 00 09 00 06 09 01 08 f7 00 00 00 00            .............
+```
+
+Response:
+
+```txt
+0000   1c 00 a0 b9 50 83 82 80 ff ff 00 00 00 00 08 00   ....P...........
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 20 a9 01 82 82 80 ff ff 00 00 00 00 1b 00   .. .............
+0010   00 03 00 01 00 00 02 43 00 00 00 00 21 09 08 03   .......C....!...
+0020   02 00 3b 00 08 3b 01 02 00 00 03 00 00 04 00 00   ..;..;..........
+0030   01 00 00 01 00 00 0d 00 00 06 00 00 11 04 2b 01   ..............+.
+0040   00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00   ................
+0050   00 01 00 00 01 00 00 09 00 00 0a 00 00 00 79      ..............y
+```
+
+Response:
+
+```txt
+0000   1c 00 20 a9 01 82 82 80 ff ff 00 00 00 00 08 00   .. .............
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+### Export profile called main to file.pro
+
+Exporta um profile não altera nada no mouse é apenas o painel exportando o profile que ele mantém guardado
+
+### Import outher profile called main
+
+When importing a profile, it creates a new profile and switches to that new profile.
+By default, the panel names it Profile1; if it already exists with that name, it tries to create it with Profile1_1, Profile1_2, Profile1_3, etc.
+
+Request:
+
+```txt
+0000   1c 00 90 e9 37 82 82 80 ff ff 00 00 00 00 1b 00   ....7...........
+0010   00 03 00 01 00 00 02 0e 00 00 00 00 21 09 0c 03   ............!...
+0020   02 00 06 00 0c 0a 01 fe 01 fe                     ..........
+```
+
+Response:
+
+```txt
+0000   1c 00 90 e9 37 82 82 80 ff ff 00 00 00 00 08 00   ....7...........
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 a0 49 d6 83 82 80 ff ff 00 00 00 00 1b 00   ...I............
+0010   00 03 00 01 00 00 02 3c 00 00 00 00 21 09 04 03   .......<....!...
+0020   02 00 34 00 04 38 01 00 01 3f 20 20 12 25 38 4b   ..4..8...?  .%8K
+0030   75 81 01 01 00 00 00 00 00 01 00 00 03 ff 00 00   u...............
+0040   00 ff 00 00 00 ff ff ff 00 00 ff ff ff 00 ff ff   ................
+0050   40 00 ff ff ff 02 0f 6b                           @......k
+```
+
+Response:
+
+```txt
+0000   1c 00 a0 49 d6 83 82 80 ff ff 00 00 00 00 08 00   ...I............
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 30 59 37 82 82 80 ff ff 00 00 00 00 1b 00   ..0Y7...........
+0010   00 03 00 01 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
+0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 04 01   .......0........
+0030   e0                                                .
+```
+
+Response:
+
+```txt
+0000   1c 00 30 59 37 82 82 80 ff ff 00 00 00 00 08 00   ..0Y7...........
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 a0 59 10 84 82 80 ff ff 00 00 00 00 1b 00   ...Y............
+0010   00 03 00 01 00 00 02 11 00 00 00 00 21 09 06 03   ............!...
+0020   02 00 09 00 06 09 01 08 f7 00 00 00 00            .............
+```
+
+Response:
+
+```txt
+0000   1c 00 a0 59 10 84 82 80 ff ff 00 00 00 00 08 00   ...Y............
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
+```
+
+Request:
+
+```txt
+0000   1c 00 a0 39 25 84 82 80 ff ff 00 00 00 00 1b 00   ...9%...........
+0010   00 03 00 01 00 00 02 43 00 00 00 00 21 09 08 03   .......C....!...
+0020   02 00 3b 00 08 3b 01 02 00 00 03 00 00 04 00 00   ..;..;..........
+0030   01 00 00 01 00 00 0d 00 00 06 00 00 11 04 2b 01   ..............+.
+0040   00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00   ................
+0050   00 01 00 00 01 00 00 09 00 00 0a 00 00 00 79      ..............y
+```
+
+Response:
+
+```txt
+0000   1c 00 a0 39 25 84 82 80 ff ff 00 00 00 00 08 00   ...9%...........
+0010   01 03 00 01 00 00 02 00 00 00 00 03               ............
 ```
