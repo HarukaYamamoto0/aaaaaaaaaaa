@@ -1,4 +1,4 @@
-## Profies
+## Profiles
 
 It's worth remembering that profiles are probably numbered, meaning the name given to a profile doesn't matter.
 When you install it for the first time, it already comes with the default profile called Profile1.
