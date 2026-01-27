@@ -8,6 +8,26 @@ This feature configures the key/button response (debounce) time of the device.
 * **Step:** 2 ms
 * **Encoding:** indexed value (not milliseconds directly)
 
+## 🧩 Report Layout
+
+| Byte | Index | Name           | Description            |
+|------|-------|----------------|------------------------|
+| 1    | 0     | Report ID      | Always `0x05`          |
+| 2    | 1     | Length         | Always `0x0F`          |
+| 3    | 2     | Command Group  | Fixed (`0x01`)         |
+| 4    | 3     | Command        | Fixed (`0x30`)         |
+| 5    | 4     | Subcommand     | Fixed (`0x04`)         |
+| 6    | 5     | Vendor Tag     | Fixed (`0xA8`)         |
+| 7    | 6     | Reserved       | Always `0x00`          |
+| 8    | 7     | Reserved       | Always `0xFF`          |
+| 9    | 8     | Reserved       | Always `0x00`          |
+| 10   | 9     | Reserved       | Always `0x01`          |
+| 11   | 10    | Response Index | Encoded debounce value |
+| 12   | 11    | Flag           | Always `0x01`          |
+| 13   | 12    | Checksum       | Sum-based checksum     |
+| 14   | 13    | Padding        | Always `0x00`          |
+| 15   | 14    | Padding        | Always `0x00`          |
+
 ### Encoding Formula
 
 ```text
