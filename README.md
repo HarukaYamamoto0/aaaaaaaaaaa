@@ -1,56 +1,64 @@
-button settings - para alterar o comportamento das teclas e configurar as duas teclas extras.
+## Attack Shark X11 – Reverse Engineering Project
 
-macro manager - bem descritivo, sinceramento eu nem uso isso.
+This project is an attempt to reverse engineer the **Attack Shark X11** mouse.
 
-profile - onde diz qual perfil atual, permite criar mais ou deletar, importar exportar etc.
+Unfortunately, the official configuration software for this mouse is **only available on Windows**.
+Because of that, and purely as a learning exercise in my free time, I’m analyzing the device’s USB protocol using **Wireshark + USBCAP**, with the goal of eventually building a usable driver / configuration tool for other platforms.
 
-power - mostra o status da bateria do mouse.
+I’m using **TypeScript** as a testing environment because it speeds up iteration and experimentation.
+Several captured communication samples can be found in the `samples/` directory.
 
-reset profile - um botão que reseta o profile atual.
+## Original Windows Software Features
 
-DPI settings - para poder selecionar e configurar os stages de dpi permitindo configurar a vontante.
+The official configuration panel provides the following features:
 
-Light settings - permite configurar uma ledzinha que tem no mouse, mas no meu ele não está respondo direito.
+| Option                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| Button settings       | Change button behavior and mappings                  |
+| Macro Manager         | Configure and manage macros                          |
+| Profiles              | Manage multiple mouse profiles                       |
+| Power                 | Displays mouse battery status                        |
+| Reset profile         | Resets the current profile                           |
+| DPI settings          | Configure DPI stages and values per stage            |
+| Light settings        | Configure the mouse LED                              |
+| Polling rate settings | Set polling rate (4 predefined options)              |
+| Mouse attributes      | Opens Windows mouse configuration                    |
+| Power manager         | Two sliders to configure sleep and deep sleep timing |
+| Key response time     | Slider from 4ms (step 2ms) up to 50ms                |
+| Ripple control        | On / Off                                             |
+| Angle snap            | On / Off                                             |
 
-Polling rate settings - configurar polling rate que ja vem pre-setado essas 4 opções.
+## Linux Access (udev Rules)
 
-Mouse atribute - para abrir a janela de config do mouse no windows.
+To avoid constantly running the Windows software inside a VM, I use Windows directly when capturing traffic.
+However, if you want to start testing this project on **Linux**, you’ll need to create **udev rules** to allow user-level access to the device.
 
-Power manager - dois slider que permite configurar o tempo de sleep com um step de 50 segundos com maximo de 30 min & e deep sleep com um step de 1 minuto com maximo de 60 min.
+### Create udev rule
 
-Key response time - um slider com um minimo de 4ms com step de 2 e maximo de 50ms.
-
-Ripple control - apenas on e off angle snap - apenas on e off.
-
----
-
-### Criar regra udev
-
-Cria o arquivo:
+Create the following file:
 
 ```bash
 sudo nano /etc/udev/rules.d/99-attack-shark-x11.rules
 ```
 
-Conteúdo:
+Add the content below:
 
 ```udev
-SUBSYSTEM=="usb", ATTR{idVendor}=="1d57", ATTR{idProduct}=="fa60", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTR{idVendor}=="1d57", ATTR{idProduct}=="fa55", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d57", ATTR{idProduct}=="fa60", MODE="0666", GROUP="plugdev" # wireless
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d57", ATTR{idProduct}=="fa55", MODE="0666", GROUP="plugdev" # wired
 ```
 
-> `0666` = leitura + escrita para user
-> `plugdev` é padrão em distros desktop (Mint incluso)
+> `0666` = read/write access for user
+> `plugdev` is standard on most desktop Linux distros (Linux Mint included)
 
-
-### Aplicar regras
+### Apply the rules
 
 ```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-Ou mais rápido:
+Or, the lazy but effective way:
 
 ```bash
 sudo reboot
