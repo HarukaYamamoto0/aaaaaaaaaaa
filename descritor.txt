@@ -1,4 +1,4 @@
-Bus 003 Device 005: ID 1d57:fa60 Xenta 2.4G Wireless Device ==== dock or adapter
+Bus 003 Device 005: ID 1d57:fa60 Xenta 2.4G Wireless Device ==== adapter
 Bus 003 Device 006: ID 1d57:fa55 Xenta USB Gaming Mouse ==== wired
 
 ➜  lsusb -d 1d57:fa55 -v
