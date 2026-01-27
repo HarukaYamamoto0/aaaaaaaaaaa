@@ -1,88 +1,111 @@
-## Key Reponse 4ms
+# 🔑 Key Response Time (Debounce Configuration)
 
-Request
+This feature configures the key/button response (debounce) time of the device.
 
-```sql
-0000   1c 00 a0 09 9f 0b 88 a3 ff ff 00 00 00 00 1b 00   ................
-0010   00 03 00 05 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
-0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 02 01   .......0........
-0030   de                                                .
+## 📐 Range and Encoding
+
+* **Range:** 4 ms → 50 ms
+* **Step:** 2 ms
+* **Encoding:** indexed value (not milliseconds directly)
+
+### Encoding Formula
+
+```text
+encoded_value = ((milliseconds - 4) / 2) + 0x02
 ```
 
-Reponse:
+### Examples
 
-```sql
-0000   1c 00 a0 09 9f 0b 88 a3 ff ff 00 00 00 00 08 00   ................
-0010   01 03 00 05 00 00 02 00 00 00 00 03               ............
+| Milliseconds | Encoded Byte |
+|--------------|--------------|
+| 4 ms         | 0x02         |
+| 6 ms         | 0x03         |
+| 8 ms         | 0x04         |
+| 10 ms        | 0x05         |
+| …            | …            |
+| 50 ms        | 0x19         |
+
+## 🧩 Report Structure
+
+* **Report length:** 15 bytes
+* **Report ID:** `0x05`
+* **Report Type:** Feature
+* **Value byte:**
+
+    * Byte **11** (1-based)
+    * Index **10** (0-based)
+* **Checksum byte:**
+
+    * Byte **13** (1-based)
+    * Index **12** (0-based)
+
+## 🔐 Checksum
+
+The checksum is **not incremental**, even though it may appear linear when only one field changes.
+
+It is calculated as:
+
+> The sum of a fixed subset of report bytes, masked to eight bits.
+
+### Observed Rule
+
+```text
+checksum = sum(report[3 .. 10]) & 0xFF
 ```
 
-## Key Reponse 10ms
+⚠️ The checksum appears to increase sequentially **only because the encoded value changes linearly**.
+If any other field changes, this pattern will no longer hold.
 
-Request
+## 🧪 USB Setup (SET_REPORT)
 
-```sql
-0000   1c 00 a0 49 a0 0b 88 a3 ff ff 00 00 00 00 1b 00   ...I............
-0010   00 03 00 05 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
-0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 05 01   .......0........
-0030   e1                                                .
+```txt
+bmRequestType: 0x21 (Host → Device | Class | Interface)
+bRequest: 0x09 (SET_REPORT)
+wValue: 0x0305
+    Report Type: Feature (3)
+    Report ID: 0x05
+wIndex: 0x0002 (Interface)
+wLength: 15
 ```
 
-Reponse:
+## 📤 Example — 4 ms
 
-```sql
-0000   1c 00 a0 49 a0 0b 88 a3 ff ff 00 00 00 00 08 00   ...I............
-0010   01 03 00 05 00 00 02 00 00 00 00 03               ............
+### Request
+
+```txt
+05 0f 01 30 04 a8 00 ff 00 01 02 01 de 00 00
 ```
 
-## Key Reponse 26ms
-Request:
+### Response
 
-```sql
-0000   1c 00 a0 a9 81 0b 88 a3 ff ff 00 00 00 00 1b 00   ................
-0010   00 03 00 05 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
-0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 0d 01   .......0........
-0030   e9                                                .
+* No data payload is returned
+* Control transfer completes successfully
+* USB status: `USBD_STATUS_SUCCESS`
+* Endpoint: Control OUT (EP0)
+
+## 📤 Example — 50 ms
+
+```txt
+05 0f 01 30 04 a8 00 ff 00 01 19 01 f5 00 00
 ```
 
-Response:
+## 📌 Device Behavior
 
-```sql
-0000   1c 00 a0 a9 81 0b 88 a3 ff ff 00 00 00 00 08 00   ................
-0010   01 03 00 05 00 00 02 00 00 00 00 03               ............
-```
+* The device **does not return any data** in response to this command
+* A successful application is indicated by:
 
-## Key Reponse 34ms
+    * completion of the control transfer
+    * absence of `STALL`
+    * USB status success
 
-Request
+## 🧠 Notes
 
-```sql
-0000   1c 00 a0 29 9f 0a 88 a3 ff ff 00 00 00 00 1b 00   ...)............
-0010   00 03 00 05 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
-0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 11 01   .......0........
-0030   ed                                                .
-```
+* Values outside the valid range may be:
 
-Reponse:
+    * ignored
+    * silently clamped by firmware
+* There is no logical ACK beyond USB transfer success
+* Firmware validation is limited to:
 
-```sql
-0000   1c 00 a0 29 9f 0a 88 a3 ff ff 00 00 00 00 08 00   ...)............
-0010   01 03 00 05 00 00 02 00 00 00 00 03               ............
-```
-
-## Key Reponse 50ms
-
-Request:
-
-```sql
-0000   1c 00 a0 f9 95 0b 88 a3 ff ff 00 00 00 00 1b 00   ................
-0010   00 03 00 05 00 00 02 15 00 00 00 00 21 09 05 03   ............!...
-0020   02 00 0d 00 05 0f 01 30 04 a8 00 ff 00 01 19 01   .......0........
-0030   f5                                                .
-```
-
-Response:
-
-```sql
-0000   1c 00 a0 f9 95 0b 88 a3 ff ff 00 00 00 00 08 00   ................
-0010   01 03 00 05 00 00 02 00 00 00 00 03               ............
-```
+    * report structure
+    * checksum correctness
