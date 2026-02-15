@@ -11,8 +11,6 @@ const PID_WIRED = 0xfa55;
 const DEVICE_INTERFACE = 0x02
 const INTERRUPT_ENDPOINT = 0x83
 
-const TIMEOUT = 1000
-
 export class AttackSharkX11 {
     public readonly productId: number;
     device: Device
@@ -98,18 +96,6 @@ export class AttackSharkX11 {
                 }
             );
         });
-    }
-
-    async interruptTransfer(data: Buffer) {
-        type TransferCb = Parameters<typeof this.interruptEndpoint.makeTransfer>[1];
-        return new Promise((resolve, reject) => {
-            const cb: TransferCb = (err, data, length) => {
-                if (err) return reject(err);
-                return resolve(data.slice(0, length));
-            }
-            const transfer = this.interruptEndpoint.makeTransfer(TIMEOUT, cb)
-            transfer.submit(data, cb)
-        })
     }
 
     open() {
