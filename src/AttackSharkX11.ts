@@ -172,7 +172,6 @@ export class AttackSharkX11 {
 
     async resetPollingRate() {
         const pollingRateProtocol = new PollingRateBuilder()
-            .setPollingRate(PollingRateOptions.eSports)
 
         return await this.commandTransfer(
             pollingRateProtocol.build(this.connectionMode),
