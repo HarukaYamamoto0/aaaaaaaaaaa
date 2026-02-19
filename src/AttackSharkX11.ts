@@ -3,6 +3,7 @@ import * as usb from "usb";
 import {PollingRateBuilder, PollingRateOptions} from "./protocols/PollingRateBuilder.js";
 import {UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
 import {ConnectionMode, type UserPreferenceOptions} from "./types.js";
+import {Buttons, MacroName, MacrosBuilder} from "./protocols/MacrosBuilder.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -130,6 +131,18 @@ export class AttackSharkX11 {
         );
     }
 
+    async setMacro(button: Buttons, macro: MacroName) {
+        const macroProtocol = new MacrosBuilder().setMacro(button, macro)
+
+        return await this.commandTransfer(
+            macroProtocol.build(this.connectionMode),
+            macroProtocol.bmRequestType,
+            macroProtocol.bRequest,
+            macroProtocol.wValue,
+            macroProtocol.wIndex
+        )
+    }
+
     async setUserPreferences(options: Partial<UserPreferenceOptions> = {}) {
         const opts: UserPreferenceOptions = {
             ...UserPreferencesBuilder.DEFAULT_PREFS,
@@ -197,17 +210,14 @@ export class AttackSharkX11 {
     }
 
     async resetMacro() {
-        const macroBuffer = Buffer.from(
-            "083b010200000300000400000100000100000d00000600000500000100000100000100000100000100000100000100000100000900000a0000003e",
-            "hex"
-        )
+        const macroProtocol = new MacrosBuilder()
 
         return await this.commandTransfer(
-            macroBuffer,
-            0x21,
-            0x09,
-            0x0308,
-            2
+            macroProtocol.build(this.connectionMode),
+            macroProtocol.bmRequestType,
+            macroProtocol.bRequest,
+            macroProtocol.wValue,
+            macroProtocol.wIndex
         )
     }
 
