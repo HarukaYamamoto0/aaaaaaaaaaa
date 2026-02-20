@@ -1,5 +1,7 @@
 ## Attack Shark X11 – Reverse Engineering Project
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/HarukaYamamoto0/attack-shark-x11-driver)
+
 This project is an attempt to reverse engineer the **Attack Shark X11** mouse.
 
 Unfortunately, the official configuration software for this mouse is **only available on Windows**.
