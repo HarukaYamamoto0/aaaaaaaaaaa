@@ -3,7 +3,7 @@ import * as usb from "usb";
 import {PollingRateBuilder, PollingRateOptions} from "./protocols/PollingRateBuilder.js";
 import {UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
 import {ConnectionMode, type UserPreferenceOptions} from "./types.js";
-import {Buttons, MacroName, MacrosBuilder} from "./protocols/MacrosBuilder.js";
+import {Buttons, type Macro, type MacroRaw, MacrosBuilder, type MacroTuple} from "./protocols/MacrosBuilder.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -131,8 +131,29 @@ export class AttackSharkX11 {
         );
     }
 
-    async setMacro(button: Buttons, macro: MacroName) {
-        const macroProtocol = new MacrosBuilder().setMacro(button, macro)
+    setMacroRaw(button: Buttons, raw: MacroRaw) {
+        const tuple: MacroTuple = [
+            raw.firmwareAction,
+            raw.modifier,
+            raw.keyCode
+        ]
+
+        return this.setMacro(button, tuple)
+    }
+
+    setMacroTemplate(button: Buttons, template: MacroTuple) {
+        return this.setMacro(button, template)
+    }
+
+    setMacro(button: Buttons, tuple: MacroTuple) {
+        const macroProtocol = new MacrosBuilder()
+
+        if (macro.type === "raw") {
+            macroProtocol.setMacro(macro.value)
+        } else {
+            if (button) macroProtocol.setMacroTemplate(button, macro.value)
+            else throw new Error("The button for the macro has not been defined!")
+        }
 
         return await this.commandTransfer(
             macroProtocol.build(this.connectionMode),
