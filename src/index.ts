@@ -1,6 +1,6 @@
 import {AttackSharkX11} from "./AttackSharkX11.js";
 import {LightMode, UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
-import {PollingRateBuilder, PollingRateOptions} from "./protocols/PollingRateBuilder.js";
+import {PollingRateBuilder, PollingRate} from "./protocols/PollingRateBuilder.js";
 import {DpiBuilder} from "./protocols/DpiBuilder.js";
 
 export {
@@ -8,7 +8,7 @@ export {
     UserPreferencesBuilder,
     LightMode,
     PollingRateBuilder,
-    PollingRateOptions,
+    PollingRate,
     DpiBuilder
 };
 export * from "./types.js";

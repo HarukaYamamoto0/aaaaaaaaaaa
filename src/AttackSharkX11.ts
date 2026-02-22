@@ -1,8 +1,11 @@
 import type {Device, Endpoint, Interface} from "usb";
 import * as usb from "usb";
-import {PollingRateBuilder, PollingRateOptions} from "./protocols/PollingRateBuilder.js";
+import {PollingRateBuilder, PollingRate} from "./protocols/PollingRateBuilder.js";
 import {UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
-import {ConnectionMode, type UserPreferenceOptions} from "./types.js";
+import {ConnectionMode, type MacroConfig, type UserPreferenceOptions} from "./types.js";
+import {Buttons, MacrosBuilder, MacroTemplate} from "./protocols/MacrosBuilder.js";
+import {InternalStateResetReportBuilder} from "./protocols/InternalStateResetReportBuilder.js";
+import {delay} from "./utils/delay.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -91,7 +94,6 @@ export class AttackSharkX11 {
                 wIndex,
                 data,
                 (err, buffer) => {
-                    console.log(typeof buffer)
                     if (err) reject(err);
                     else resolve(buffer);
                 }
@@ -118,7 +120,7 @@ export class AttackSharkX11 {
         }
     }
 
-    async setPollingRate(rate: PollingRateOptions) {
+    async setPollingRate(rate: PollingRate) {
         const pollingRateProtocol = new PollingRateBuilder()
             .setPollingRate(rate)
 
@@ -128,6 +130,33 @@ export class AttackSharkX11 {
             pollingRateProtocol.bRequest,
             pollingRateProtocol.wValue,
             pollingRateProtocol.wIndex
+        );
+    }
+
+    async setMacro(config: MacroConfig) {
+        const {
+            left = MacroTemplate["global-left-click"],
+            right = MacroTemplate["global-right-click"],
+            middle = MacroTemplate["global-middle"],
+            extra4 = MacroTemplate["global-forward"],
+            extra5 = MacroTemplate["global-backward"],
+        } = config;
+
+        const macroProtocol = new MacrosBuilder()
+            .setMacro(Buttons.LEFT_BUTTON, left)
+            .setMacro(Buttons.RIGHT_BUTTON, right)
+            .setMacro(Buttons.MIDDLE_BUTTON, middle)
+            .setMacro(Buttons.BUTTON_4, extra4)
+            .setMacro(Buttons.BUTTON_5, extra5);
+
+        const buffer = macroProtocol.build(this.connectionMode)
+
+        return this.commandTransfer(
+            buffer,
+            macroProtocol.bmRequestType,
+            macroProtocol.bRequest,
+            macroProtocol.wValue,
+            macroProtocol.wIndex
         );
     }
 
@@ -158,11 +187,11 @@ export class AttackSharkX11 {
         );
     }
 
-    async resetUUUUUUUUUUURate() {
-        let UUUUUUUUUUUBuffer = Buffer.from("0c0a01fe01fe", "hex")
+    async sendInternalStateResetReportBuilder() {
+        let internalStateResetReportBuffer = new InternalStateResetReportBuilder()
 
         return await this.commandTransfer(
-            UUUUUUUUUUUBuffer,
+            internalStateResetReportBuffer.build(this.connectionMode),
             0x21,
             0x09,
             0x030C,
@@ -198,22 +227,18 @@ export class AttackSharkX11 {
     }
 
     async resetMacro() {
-        const macroBuffer = Buffer.from(
-            "083b010200000300000400000100000100000d00000600000500000100000100000100000100000100000100000100000100000900000a0000003e",
-            "hex"
-        )
+        const macroProtocol = new MacrosBuilder()
 
         return await this.commandTransfer(
-            macroBuffer,
-            0x21,
-            0x09,
-            0x0308,
-            2
+            macroProtocol.build(this.connectionMode),
+            macroProtocol.bmRequestType,
+            macroProtocol.bRequest,
+            macroProtocol.wValue,
+            macroProtocol.wIndex
         )
     }
 
     async resetUserPreferences() {
-        // Sets default key response (8ms) and other power settings
         const builder = new UserPreferencesBuilder().setKeyResponse(8);
 
         return await this.commandTransfer(
@@ -226,10 +251,14 @@ export class AttackSharkX11 {
     }
 
     async reset() {
-        await this.resetUUUUUUUUUUURate()
+        await this.sendInternalStateResetReportBuilder()
+        await delay(500)
         await this.resetDpiSystem()
+        await delay(500)
         await this.resetUserPreferences()
+        await delay(500)
         await this.resetPollingRate()
+        await delay(500)
         await this.resetMacro()
     }
 }
