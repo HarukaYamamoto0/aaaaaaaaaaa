@@ -1,10 +1,11 @@
 import type {Device, Endpoint, Interface} from "usb";
 import * as usb from "usb";
-import {PollingRateBuilder, PollingRateOptions} from "./protocols/PollingRateBuilder.js";
+import {PollingRateBuilder, PollingRate} from "./protocols/PollingRateBuilder.js";
 import {UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
 import {ConnectionMode, type MacroConfig, type UserPreferenceOptions} from "./types.js";
 import {Buttons, MacrosBuilder, MacroTemplate} from "./protocols/MacrosBuilder.js";
 import {InternalStateResetReportBuilder} from "./protocols/InternalStateResetReportBuilder.js";
+import {delay} from "./utils/delay.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -119,7 +120,7 @@ export class AttackSharkX11 {
         }
     }
 
-    async setPollingRate(rate: PollingRateOptions) {
+    async setPollingRate(rate: PollingRate) {
         const pollingRateProtocol = new PollingRateBuilder()
             .setPollingRate(rate)
 
@@ -238,7 +239,6 @@ export class AttackSharkX11 {
     }
 
     async resetUserPreferences() {
-        // Sets default key response (8ms) and other power settings
         const builder = new UserPreferencesBuilder().setKeyResponse(8);
 
         return await this.commandTransfer(
@@ -252,9 +252,13 @@ export class AttackSharkX11 {
 
     async reset() {
         await this.sendInternalStateResetReportBuilder()
+        await delay(500)
         await this.resetDpiSystem()
+        await delay(500)
         await this.resetUserPreferences()
+        await delay(500)
         await this.resetPollingRate()
+        await delay(500)
         await this.resetMacro()
     }
 }

@@ -1,6 +1,6 @@
 import {ConnectionMode, type ProtocolBuilder} from "../types.js";
 
-export enum PollingRateOptions {
+export enum PollingRate {
     powerSaving = 125,
     office = 250,
     gaming = 500,
@@ -37,7 +37,7 @@ export class PollingRateBuilder implements ProtocolBuilder {
     /**
      * Creates an instance already configured for a specific rate
      */
-    static forRate(rate: PollingRateOptions): PollingRateBuilder {
+    static forRate(rate: PollingRate): PollingRateBuilder {
         return new PollingRateBuilder().setPollingRate(rate);
     }
 
@@ -45,12 +45,12 @@ export class PollingRateBuilder implements ProtocolBuilder {
      * Sets the Polling Rate
      * @param rate Polling rate option
      */
-    setPollingRate(rate: PollingRateOptions): this {
-        const rateMap: Record<PollingRateOptions, number> = {
-            [PollingRateOptions.powerSaving]: 0x08,
-            [PollingRateOptions.office]: 0x04,
-            [PollingRateOptions.gaming]: 0x02,
-            [PollingRateOptions.eSports]: 0x01,
+    setPollingRate(rate: PollingRate): this {
+        const rateMap: Record<PollingRate, number> = {
+            [PollingRate.powerSaving]: 0x08,
+            [PollingRate.office]: 0x04,
+            [PollingRate.gaming]: 0x02,
+            [PollingRate.eSports]: 0x01,
         };
 
         const value = rateMap[rate];
