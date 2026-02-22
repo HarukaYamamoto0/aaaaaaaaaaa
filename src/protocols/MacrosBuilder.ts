@@ -423,11 +423,6 @@ export class MacrosBuilder implements ProtocolBuilder {
         return this
     }
 
-    /**
-     * Calculates firmware checksum.
-     * Range: bytes 2..56
-     * Formula: (sum - 1) & 0xff
-     */
     calculateChecksum(): number {
         if (this.buffer.length !== 59) {
             throw new Error("Invalid buffer size. Expected 59 bytes.")
