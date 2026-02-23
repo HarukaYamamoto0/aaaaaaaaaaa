@@ -1,33 +1,18 @@
-import {AttackSharkX11, LightMode, PollingRate} from "./src/index.js";
-import {FirmwareAction, KeyCode, MacroTemplate, Modifiers} from "./src/protocols/MacrosBuilder.js";
-import {delay} from "./src/utils/delay.js";
+import {AttackSharkX11, ConnectionMode, DpiBuilder} from "./src/index.js";
+import {StageIndex} from "./src/protocols/DpiBuilder.js";
 
 const driver = new AttackSharkX11()
 
 try {
-    await driver.reset()
-    await delay(500)
+    const builder = new DpiBuilder()
+        .setDpiValue(StageIndex.FIRST, 800)   // stage1 = 800 DPI
+        .setDpiValue(StageIndex.SECOND, 1600) // stage2 = 1600 DPI
+        .setActiveStage(StageIndex.FIRST);    // stage1 ativo
 
-    await driver.setPollingRate(PollingRate.eSports)
-    await delay(500)
+    const buffer = builder.build(ConnectionMode.Wired);
+    console.log(buffer.toString('hex'));
 
-    await driver.setUserPreferences({
-        lightMode: LightMode.Static,
-        rgb: {r: 0, g: 255, b: 0},
-        ledSpeed: 5,
-        sleepTime: 0.5,
-        deepSleepTime: 10,
-        keyResponse: 8
-    })
-    await delay(500)
-
-    await driver.setMacro({
-        left: MacroTemplate["global-left-click"],
-        right: MacroTemplate["global-right-click"],
-        middle: MacroTemplate["global-middle"],
-        extra4: MacroTemplate["global-forward"],
-        extra5: [FirmwareAction.KEYBOARD, Modifiers.ALT, KeyCode.TAB] as const
-    })
+    // await driver.setDpi(dpiBuffer)
 } finally {
     driver.close()
 }
