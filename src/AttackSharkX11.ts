@@ -6,6 +6,7 @@ import {ConnectionMode, type MacroConfig, type UserPreferenceOptions} from "./ty
 import {Buttons, MacrosBuilder, MacroTemplate} from "./protocols/MacrosBuilder.js";
 import {InternalStateResetReportBuilder} from "./protocols/InternalStateResetReportBuilder.js";
 import {delay} from "./utils/delay.js";
+import DpiBuilder from "./protocols/DpiBuilder.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -211,14 +212,21 @@ export class AttackSharkX11 {
         );
     }
 
-    async resetDpiSystem() {
-        let dpiSystemBuffer = Buffer.from(
-            "04380100013f20201225384b75810000000000000001000002ff000000ff000000ffffff0000ffffff00ffff4000ffffff020f6800000000",
-            "hex"
-        )
+    async setDpi(builder: DpiBuilder) {
+        return await this.commandTransfer(
+            builder.build(this.connectionMode),
+            0x21,
+            0x09,
+            0x0304,
+            2
+        );
+    }
+
+    async resetDpi() {
+        let dpiProtocol = new DpiBuilder()
 
         return await this.commandTransfer(
-            dpiSystemBuffer,
+            dpiProtocol.build(this.connectionMode),
             0x21,
             0x09,
             0x0304,
@@ -253,7 +261,7 @@ export class AttackSharkX11 {
     async reset() {
         await this.sendInternalStateResetReportBuilder()
         await delay(500)
-        await this.resetDpiSystem()
+        await this.resetDpi()
         await delay(500)
         await this.resetUserPreferences()
         await delay(500)

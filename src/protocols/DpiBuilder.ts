@@ -1,84 +1,198 @@
-import type {ProtocolBuilder} from "../types.js";
+import {ConnectionMode, type ProtocolBuilder} from "../types.js";
+import {DPI_STEP_MAP} from "../dpi-map.js";
 
-export class DpiBuilder implements ProtocolBuilder {
+const OFFSET = {
+    ANGLE_SNAP: 3,
+    RIPPLER_CONTROL: 4,
+    STAGE_MASK_A: 6,
+    STAGE_MASK_B: 7,
+    EXPANDED_MASK: 16,
+    CURRENT_STAGE: 24,
+    CHECKSUM_HIGH_BYTE: 50,
+    CHECKSUM_LOW_BYTE: 51,
+    STAGES_START: 8,
+} as const;
+
+export enum StageIndex {
+    FIRST = 0x01,
+    SECOND = 0x02,
+    THIRD = 0x03,
+    FOURTH = 0x04,
+    FIFTH = 0x05,
+    SIXTH = 0x06
+}
+
+type StageArrayIndex = 0 | 1 | 2 | 3 | 4 | 5;
+
+class DpiBuilder implements ProtocolBuilder {
     public readonly buffer: Buffer;
+    private stages: [number, number, number, number, number, number] =
+        [800, 1600, 2400, 3200, 5000, 12000];
+
     public readonly bmRequestType: number = 0x21;
     public readonly bRequest: number = 0x09;
     public readonly wValue: number = 0x0304;
     public readonly wIndex: number = 2;
 
+    // noinspection FunctionTooLongJS
     constructor() {
-        this.buffer = Buffer.alloc(52, 0x00);
-        // Fixed header
-        this.buffer[0] = 0x04;
-        this.buffer[1] = 0x38;
-        this.buffer[2] = 0x01;
-        // angle snap / ripple (kept off)
-        this.buffer[3] = 0x00;
-        this.buffer[4] = 0x00;
-        this.buffer[5] = 0x3F;
-        // Observed fixed trailer
-        this.buffer[49] = 0x02;
-        this.buffer[50] = 0x0F;
+        this.buffer = Buffer.alloc(56)
+
+        this.buffer[0] = 0x04 // header
+        this.buffer[1] = 0x38 // header
+        this.buffer[2] = 0x01 // header
+
+        this.buffer[3] = 0x01 // angle snap
+        this.buffer[4] = 0x00 // ripple control
+
+        this.buffer[5] = 0x3F // fixed
+
+        this.buffer[6] = 0x20 // stage mask
+        this.buffer[7] = 0x20 // stage mask
+
+        this.buffer[8] = 0x12 // stage 1 value
+        this.buffer[9] = 0x25 // stage 2 value
+        this.buffer[10] = 0x38 // stage 3 value
+        this.buffer[11] = 0x4B // stage 4 value
+        this.buffer[12] = 0x75 // stage 5 value
+        this.buffer[13] = 0x81 // stage 6 value
+
+        this.buffer[14] = 0x00 // fixed
+        this.buffer[15] = 0x00 // fixed
+
+        this.buffer[16] = 0x00 // high stage 1
+        this.buffer[17] = 0x00 // high stage 2
+        this.buffer[18] = 0x00 // high stage 3
+        this.buffer[19] = 0x00 // high stage 4
+        this.buffer[20] = 0x00 // high stage 5
+        this.buffer[21] = 0x01 // high stage 6
+
+        this.buffer[22] = 0x00 // fixed
+        this.buffer[23] = 0x00 // fixed
+        this.buffer[24] = 0x02 // stage index
+        this.buffer[25] = 0xFF // fixed
+        this.buffer[26] = 0x00 // fixed
+        this.buffer[27] = 0x00 // fixed
+        this.buffer[28] = 0x00 // fixed
+        this.buffer[29] = 0xFF // fixed
+        this.buffer[30] = 0x00 // fixed
+        this.buffer[31] = 0x00 // fixed
+
+        this.buffer[32] = 0x00 // fixed
+        this.buffer[33] = 0xFF // fixed
+        this.buffer[34] = 0xFF // fixed
+        this.buffer[35] = 0xFF // fixed
+        this.buffer[36] = 0x00 // fixed
+        this.buffer[37] = 0x00 // fixed
+        this.buffer[38] = 0xFF // fixed
+        this.buffer[39] = 0xFF // fixed
+        this.buffer[40] = 0xFF // fixed
+        this.buffer[41] = 0x00 // fixed
+        this.buffer[42] = 0xFF // fixed
+        this.buffer[43] = 0xFF // fixed
+        this.buffer[44] = 0x40 // fixed
+        this.buffer[45] = 0x00 // fixed
+        this.buffer[46] = 0xFF // fixed
+        this.buffer[47] = 0xFF // fixed
+
+        this.buffer[48] = 0xFF // fixed
+        this.buffer[49] = 0x02 // fixed
+        this.buffer[50] = 0x0F // checksum high byte
+        this.buffer[51] = 0x67 // checksum low byte
+
+        this.buffer[52] = 0x00 // padding wireless mode
+        this.buffer[53] = 0x00 // padding wireless mode
+        this.buffer[54] = 0x00 // padding wireless mode
+        this.buffer[55] = 0x00 // padding wireless mode
     }
 
-    setStages(stages: [number, number, number, number, number, number], activeStage: number): this {
-        if (activeStage < 1 || activeStage > 6) {
-            throw new Error("Invalid active stage (1–6)");
-        }
+    setAngleSnap(active = false): this {
+        this.buffer[OFFSET.ANGLE_SNAP] = active ? 0x01 : 0x00;
+        return this;
+    }
 
-        // === DPI encoding ===
-        for (let i = 0; i < 6; i++) {
-            this.buffer[8 + i] = this.encodeDpi(stages[i]!);
-        }
+    setRipplerControl(active = true): this {
+        this.buffer[OFFSET.RIPPLER_CONTROL] = active ? 0x01 : 0x00;
+        return this;
+    }
 
-        // === High DPI bitmask ===
-        const mask = this.buildHighDpiMask(stages);
-        this.buffer[6] = mask;
-        this.buffer[7] = mask;
+    setCurrentStage(stage: StageIndex): this {
+        this.buffer[OFFSET.CURRENT_STAGE] = stage;
+        return this;
+    }
 
-        // === Individual flags per stage ===
-        for (let i = 0; i < 6; i++) {
-            this.buffer[21 + i] = stages[i]! >= 22000 ? 0x01 : 0x00;
-        }
+    setDpiValue(stage: StageIndex, dpi: number): this {
+        const index = (stage - 1) as StageArrayIndex;
 
-        // Current stage
-        this.buffer[24] = activeStage;
+        this.stages[index] = dpi;
+        this.buffer[OFFSET.STAGES_START + index] = this.encodeDpi(dpi);
 
         return this;
     }
 
     private encodeDpi(dpi: number): number {
-        if (dpi >= 22000) return 0x81;
-        if (dpi < 50) return 0x01;
-        return Math.round(dpi / 50);
+        const keys = Object.keys(DPI_STEP_MAP)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+        const match = keys.find(k => k >= dpi);
+
+        if (match === undefined) {
+            throw new Error(`Unsupported DPI: ${dpi}`);
+        }
+
+        return DPI_STEP_MAP[match]!;
     }
 
-    private buildHighDpiMask(dpis: number[]): number {
-        let mask = 0;
+    private updateStageMask(): void {
+        const bitValues = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20];
+        let mask = 0x00;
+
         for (let i = 0; i < 6; i++) {
-            const dpi = dpis[i];
-            if (dpi !== undefined && dpi >= 22000) {
-                mask |= (1 << i);
+            if (this.stages[i] as StageArrayIndex > 12000) {
+                mask |= bitValues[i]!;
             }
         }
-        return mask;
+
+        this.buffer[OFFSET.STAGE_MASK_A] = mask;
+        this.buffer[OFFSET.STAGE_MASK_B] = mask;
     }
 
-    build(): Buffer {
-        this.buffer[51] = this.calculateChecksum();
-        return this.buffer;
+    private updateHighStageFlags(): void {
+        for (let i = 0; i < 6; i++) {
+            this.buffer[OFFSET.EXPANDED_MASK + i] =
+                this.stages[i] as StageArrayIndex > 10000 ? 0x01 : 0x00;
+        }
     }
+
 
     calculateChecksum(): number {
-        let checksum = 0;
+        let sum = 0;
+
         for (let i = 3; i <= 49; i++) {
-            checksum = (checksum + this.buffer[i]!) & 0xFF;
+            sum += this.buffer[i]!;
         }
-        return checksum;
+
+        return sum & 0xffff
+    }
+
+    build(mode: ConnectionMode): Buffer {
+        this.updateStageMask();
+        this.updateHighStageFlags();
+
+        const checksum = this.calculateChecksum();
+
+        this.buffer[OFFSET.CHECKSUM_HIGH_BYTE] = (checksum >> 8) & 0xff;
+        this.buffer[OFFSET.CHECKSUM_LOW_BYTE] = checksum & 0xff;
+
+        return mode === ConnectionMode.Wired
+            ? this.buffer.subarray(0, OFFSET.CHECKSUM_LOW_BYTE + 1)
+            : this.buffer;
     }
 
     toString(): string {
         return this.buffer.toString("hex");
     }
 }
+
+export default DpiBuilder
