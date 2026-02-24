@@ -1,7 +1,7 @@
 import {AttackSharkX11} from "./AttackSharkX11.js";
 import {LightMode, UserPreferencesBuilder} from "./protocols/UserPreferencesBuilder.js";
 import {PollingRateBuilder, PollingRate} from "./protocols/PollingRateBuilder.js";
-import {DpiBuilder} from "./protocols/DpiBuilder.js";
+import DpiBuilder from "./protocols/DpiBuilder.js";
 
 export {
     AttackSharkX11,

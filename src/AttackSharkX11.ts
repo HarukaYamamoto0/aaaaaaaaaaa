@@ -6,7 +6,7 @@ import {ConnectionMode, type MacroConfig, type UserPreferenceOptions} from "./ty
 import {Buttons, MacrosBuilder, MacroTemplate} from "./protocols/MacrosBuilder.js";
 import {InternalStateResetReportBuilder} from "./protocols/InternalStateResetReportBuilder.js";
 import {delay} from "./utils/delay.js";
-import {DpiBuilder} from "./protocols/DpiBuilder.js";
+import DpiBuilder from "./protocols/DpiBuilder.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
