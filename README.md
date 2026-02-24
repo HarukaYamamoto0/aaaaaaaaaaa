@@ -1,5 +1,7 @@
 ## Attack Shark X11 – Reverse Engineering Project
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/HarukaYamamoto0/attack-shark-x11-driver)
+
 This project is an attempt to reverse engineer the **Attack Shark X11** mouse.
 
 Unfortunately, the official configuration software for this mouse is **only available on Windows**.
@@ -12,21 +14,25 @@ Several captured communication samples can be found in the `samples/` directory.
 
 The official configuration panel provides the following features:
 
-| Option                | Description                                          |
-| --------------------- | ---------------------------------------------------- |
-| Button settings       | Change button behavior and mappings                  |
-| Macro Manager         | Configure and manage macros                          |
-| Profiles              | Manage multiple mouse profiles                       |
-| Power                 | Displays mouse battery status                        |
-| Reset profile         | Resets the current profile                           |
-| DPI settings          | Configure DPI stages and values per stage            |
-| Light settings        | Configure the mouse LED                              |
-| Polling rate settings | Set polling rate (4 predefined options)              |
-| Mouse attributes      | Opens Windows mouse configuration                    |
-| Power manager         | Two sliders to configure sleep and deep sleep timing |
-| Key response time     | Slider from 4ms (step 2ms) up to 50ms                |
-| Ripple control        | On / Off                                             |
-| Angle snap            | On / Off                                             |
+✅ = fully implemented<br>
+⚠️ = under development<br>
+❌ = Not yet implemented<br>
+
+| Option                | Description                                          | Implementation |
+| --------------------- | ---------------------------------------------------- | -------------- |
+| Button settings       | Change button behavior and mappings                  | ✅ |
+| Macro Manager         | Configure and manage macros                          | ❌ |
+| Power                 | Displays mouse battery status                        | ✅ |
+| Reset profile         | Resets the current profile                           | ✅ |
+| DPI settings          | Configure DPI stages and values per stage            | ⚠️ |
+| Light settings        | Configure the mouse LED                              | ✅ |
+| Polling rate settings | Set polling rate (4 predefined options)              | ✅ |
+| Power manager         | Two sliders to configure sleep and deep sleep timing | ✅ |
+| Key response time     | Slider from 4ms (step 2ms) up to 50ms                | ✅ |
+| Ripple control        | On / Off                                             | ⚠️ |
+| Angle snap            | On / Off                                             | ⚠️ |
+
+
 
 ## Linux Access (udev Rules)
 
