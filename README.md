@@ -8,6 +8,9 @@ Unfortunately, the official configuration software for this mouse is **only avai
 Because of that, and purely as a learning exercise in my free time, I’m analyzing the device’s USB protocol using *
 *Wireshark + USBCAP**, with the goal of eventually building a usable driver / configuration tool for other platforms.
 
+Please note that this driver currently only supports wired and 2.4 GHz wireless modes, as my computer lacks a Bluetooth adapter for testing.  
+However, I expect Bluetooth behavior to be similar, likely requiring only minor bug fixes.
+
 I’m using **TypeScript** as a testing environment because it speeds up iteration and experimentation.
 Several captured communication samples can be found in the `samples/` directory.
 
