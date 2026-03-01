@@ -1,24 +1,18 @@
-Bus 003 Device 005: ID 1d57:fa60 Xenta 2.4G Wireless Device ==== adapter
-Bus 003 Device 006: ID 1d57:fa55 Xenta USB Gaming Mouse ==== wired
-
-➜  lsusb -d 1d57:fa55 -v
-
-Bus 002 Device 002: ID 1d57:fa55 Xenta USB Gaming Mouse
-Couldn't open device, some information will be missing
+Bus 003 Device 005: ID 1d57:fa55 Xenta USB Gaming Mouse
 Device Descriptor:
   bLength                18
   bDescriptorType         1
   bcdUSB               1.10
   bDeviceClass            0 [unknown]
   bDeviceSubClass         0 [unknown]
-  bDeviceProtocol         0 
+  bDeviceProtocol         0
   bMaxPacketSize0        64
   idVendor           0x1d57 Xenta
   idProduct          0xfa55 USB Gaming Mouse
   bcdDevice            1.02
   iManufacturer           1 Beken
   iProduct                2 USB Gaming Mouse
-  iSerial                 0 
+  iSerial                 0
   bNumConfigurations      1
   Configuration Descriptor:
     bLength                 9
@@ -26,7 +20,7 @@ Device Descriptor:
     wTotalLength       0x006d
     bNumInterfaces          4
     bConfigurationValue     1
-    iConfiguration          0 
+    iConfiguration          0
     bmAttributes         0xa0
       (Bus Powered)
       Remote Wakeup
@@ -40,7 +34,7 @@ Device Descriptor:
       bInterfaceClass         3 Human Interface Device
       bInterfaceSubClass      1 Boot Interface Subclass
       bInterfaceProtocol      1 Keyboard
-      iInterface              0 
+      iInterface              0
         HID Device Descriptor:
           bLength                 9
           bDescriptorType        33
@@ -49,7 +43,7 @@ Device Descriptor:
           bNumDescriptors         1
           bDescriptorType        34 Report
           wDescriptorLength      75
-          Report Descriptors: 
+          Report Descriptors:
             ** UNAVAILABLE **
       Endpoint Descriptor:
         bLength                 7
@@ -70,7 +64,7 @@ Device Descriptor:
       bInterfaceClass         3 Human Interface Device
       bInterfaceSubClass      1 Boot Interface Subclass
       bInterfaceProtocol      2 Mouse
-      iInterface              0 
+      iInterface              0
         HID Device Descriptor:
           bLength                 9
           bDescriptorType        33
@@ -79,7 +73,7 @@ Device Descriptor:
           bNumDescriptors         1
           bDescriptorType        34 Report
           wDescriptorLength      73
-          Report Descriptors: 
+          Report Descriptors:
             ** UNAVAILABLE **
       Endpoint Descriptor:
         bLength                 7
@@ -99,8 +93,8 @@ Device Descriptor:
       bNumEndpoints           1
       bInterfaceClass         3 Human Interface Device
       bInterfaceSubClass      0 [unknown]
-      bInterfaceProtocol      0 
-      iInterface              0 
+      bInterfaceProtocol      0
+      iInterface              0
         HID Device Descriptor:
           bLength                 9
           bDescriptorType        33
@@ -109,7 +103,7 @@ Device Descriptor:
           bNumDescriptors         1
           bDescriptorType        34 Report
           wDescriptorLength     236
-          Report Descriptors: 
+          Report Descriptors:
             ** UNAVAILABLE **
       Endpoint Descriptor:
         bLength                 7
@@ -130,7 +124,7 @@ Device Descriptor:
       bInterfaceClass         3 Human Interface Device
       bInterfaceSubClass      1 Boot Interface Subclass
       bInterfaceProtocol      1 Keyboard
-      iInterface              0 
+      iInterface              0
         HID Device Descriptor:
           bLength                 9
           bDescriptorType        33
@@ -139,7 +133,7 @@ Device Descriptor:
           bNumDescriptors         1
           bDescriptorType        34 Report
           wDescriptorLength      39
-          Report Descriptors: 
+          Report Descriptors:
             ** UNAVAILABLE **
       Endpoint Descriptor:
         bLength                 7
@@ -151,3 +145,6 @@ Device Descriptor:
           Usage Type               Data
         wMaxPacketSize     0x0010  1x 16 bytes
         bInterval               1
+Device Status:     0x0002
+  (Bus Powered)
+  Remote Wakeup Enabled
