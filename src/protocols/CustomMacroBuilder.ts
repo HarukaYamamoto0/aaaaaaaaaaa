@@ -22,6 +22,14 @@ export enum MacroSettings {
     PRESS_AND_HOLD_RELEASE_STOP = 0x02
 }
 
+export enum MouseMacroEvent {
+    LEFT_CLICK = 0xf1,
+    RIGHT_CLICK = 0xf2,
+    MIDDLE_CLICK = 0xf3,
+    FORWARD_CLICK = 0xf5,
+    BACKWARD_CLICK = 0xf4,
+}
+
 export class CustomMacroBuilder implements BaseProtocolBuilder {
     readonly buffer: Buffer = Buffer.alloc(0);
     public readonly bmRequestType: number = 0x21;
@@ -33,6 +41,8 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
     private readonly secondPacket: Buffer = Buffer.alloc(64)
     private readonly thirdPacket: Buffer = Buffer.alloc(64)
     private readonly fourthPacket: Buffer = Buffer.alloc(64)
+
+    private macroEvents: number[] = []
 
     // noinspection FunctionTooLongJS
     constructor() {
@@ -68,43 +78,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.secondPacket[26] = 0x00
         this.secondPacket[27] = 0x00
         this.secondPacket[28] = 0x00
-        this.secondPacket[29] = 0x02 // event counter
-
-        this.secondPacket[30] = 0x01 // pressed event + delay // reserved for macro events
-        this.secondPacket[31] = KeyCode.A // reserved for macro events
-        this.secondPacket[32] = 0x81 // release event + delay // reserved for macro events
-        this.secondPacket[33] = KeyCode.A // reserved for macro events
-
-        this.secondPacket[34] = 0x00 // reserved for macro events
-        this.secondPacket[35] = 0x00 // reserved for macro events
-        this.secondPacket[36] = 0x00 // reserved for macro events
-        this.secondPacket[37] = 0x00 // reserved for macro events
-        this.secondPacket[38] = 0x00 // reserved for macro events
-        this.secondPacket[39] = 0x00 // reserved for macro events
-        this.secondPacket[40] = 0x00 // reserved for macro events
-        this.secondPacket[41] = 0x00 // reserved for macro events
-        this.secondPacket[42] = 0x00 // reserved for macro events
-        this.secondPacket[43] = 0x00 // reserved for macro events
-        this.secondPacket[44] = 0x00 // reserved for macro events
-        this.secondPacket[45] = 0x00 // reserved for macro events
-        this.secondPacket[46] = 0x00 // reserved for macro events
-        this.secondPacket[47] = 0x00 // reserved for macro events
-        this.secondPacket[48] = 0x00 // reserved for macro events
-        this.secondPacket[49] = 0x00 // reserved for macro events
-        this.secondPacket[50] = 0x00 // reserved for macro events
-        this.secondPacket[51] = 0x00 // reserved for macro events
-        this.secondPacket[52] = 0x00 // reserved for macro events
-        this.secondPacket[53] = 0x00 // reserved for macro events
-        this.secondPacket[54] = 0x00 // reserved for macro events
-        this.secondPacket[55] = 0x00 // reserved for macro events
-        this.secondPacket[56] = 0x00 // reserved for macro events
-        this.secondPacket[57] = 0x00 // reserved for macro events
-        this.secondPacket[58] = 0x00 // reserved for macro events
-        this.secondPacket[59] = 0x00 // reserved for macro events
-        this.secondPacket[60] = 0x00 // reserved for macro events
-        this.secondPacket[61] = 0x00 // reserved for macro events
-        this.secondPacket[62] = 0x00 // reserved for macro events
-        this.secondPacket[63] = 0x00 // reserved for macro events
+        this.secondPacket[29] = 0x00 // event counter
 
         // Third Packet
 
@@ -112,66 +86,6 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.thirdPacket[1] = 0x40 // Header
         this.thirdPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
         this.thirdPacket[3] = 0x01 // Page 1
-        this.thirdPacket[4] = 0x00 // reserved for macro events
-        this.thirdPacket[5] = 0x00 // reserved for macro events
-        this.thirdPacket[6] = 0x00 // reserved for macro events
-        this.thirdPacket[7] = 0x00 // reserved for macro events
-        this.thirdPacket[8] = 0x00 // reserved for macro events
-        this.thirdPacket[9] = 0x00 // reserved for macro events
-        this.thirdPacket[10] = 0x00 // reserved for macro events
-        this.thirdPacket[11] = 0x00 // reserved for macro events
-        this.thirdPacket[12] = 0x00 // reserved for macro events
-        this.thirdPacket[13] = 0x00 // reserved for macro events
-        this.thirdPacket[14] = 0x00 // reserved for macro events
-        this.thirdPacket[15] = 0x00 // reserved for macro events
-        this.thirdPacket[16] = 0x00 // reserved for macro events
-        this.thirdPacket[17] = 0x00 // reserved for macro events
-        this.thirdPacket[18] = 0x00 // reserved for macro events
-        this.thirdPacket[19] = 0x00 // reserved for macro events
-        this.thirdPacket[20] = 0x00 // reserved for macro events
-        this.thirdPacket[21] = 0x00 // reserved for macro events
-        this.thirdPacket[22] = 0x00 // reserved for macro events
-        this.thirdPacket[23] = 0x00 // reserved for macro events
-        this.thirdPacket[24] = 0x00 // reserved for macro events
-        this.thirdPacket[25] = 0x00 // reserved for macro events
-        this.thirdPacket[26] = 0x00 // reserved for macro events
-        this.thirdPacket[27] = 0x00 // reserved for macro events
-        this.thirdPacket[28] = 0x00 // reserved for macro events
-        this.thirdPacket[29] = 0x00 // reserved for macro events
-        this.thirdPacket[30] = 0x00 // reserved for macro events
-        this.thirdPacket[31] = 0x00 // reserved for macro events
-        this.thirdPacket[32] = 0x00 // reserved for macro events
-        this.thirdPacket[33] = 0x00 // reserved for macro events
-        this.thirdPacket[34] = 0x00 // reserved for macro events
-        this.thirdPacket[35] = 0x00 // reserved for macro events
-        this.thirdPacket[36] = 0x00 // reserved for macro events
-        this.thirdPacket[37] = 0x00 // reserved for macro events
-        this.thirdPacket[38] = 0x00 // reserved for macro events
-        this.thirdPacket[39] = 0x00 // reserved for macro events
-        this.thirdPacket[40] = 0x00 // reserved for macro events
-        this.thirdPacket[41] = 0x00 // reserved for macro events
-        this.thirdPacket[42] = 0x00 // reserved for macro events
-        this.thirdPacket[43] = 0x00 // reserved for macro events
-        this.thirdPacket[44] = 0x00 // reserved for macro events
-        this.thirdPacket[45] = 0x00 // reserved for macro events
-        this.thirdPacket[46] = 0x00 // reserved for macro events
-        this.thirdPacket[47] = 0x00 // reserved for macro events
-        this.thirdPacket[48] = 0x00 // reserved for macro events
-        this.thirdPacket[49] = 0x00 // reserved for macro events
-        this.thirdPacket[50] = 0x00 // reserved for macro events
-        this.thirdPacket[51] = 0x00 // reserved for macro events
-        this.thirdPacket[52] = 0x00 // reserved for macro events
-        this.thirdPacket[53] = 0x00 // reserved for macro events
-        this.thirdPacket[54] = 0x00 // reserved for macro events
-        this.thirdPacket[55] = 0x00 // reserved for macro events
-        this.thirdPacket[56] = 0x00 // reserved for macro events
-        this.thirdPacket[57] = 0x00 // reserved for macro events
-        this.thirdPacket[58] = 0x00 // reserved for macro events
-        this.thirdPacket[59] = 0x00 // reserved for macro events
-        this.thirdPacket[60] = 0x00 // reserved for macro events
-        this.thirdPacket[61] = 0x00 // reserved for macro events
-        this.thirdPacket[62] = 0x00 // reserved for macro events
-        this.thirdPacket[63] = 0x00 // reserved for macro events
 
         // Fourth Packet
 
@@ -187,58 +101,55 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.fourthPacket[9] = 0x00
         this.fourthPacket[10] = 0x00 // Big Endian Checksum
         this.fourthPacket[11] = 0x00 // Big Endian Checksum
-        this.fourthPacket[12] = 0x00
-        this.fourthPacket[13] = 0x00
-        this.fourthPacket[14] = 0x00
-        this.fourthPacket[15] = 0x00
-        this.fourthPacket[16] = 0x00
-        this.fourthPacket[17] = 0x00
-        this.fourthPacket[18] = 0x00
-        this.fourthPacket[19] = 0x00
-        this.fourthPacket[20] = 0x00
-        this.fourthPacket[21] = 0x00
-        this.fourthPacket[22] = 0x00
-        this.fourthPacket[23] = 0x00
-        this.fourthPacket[24] = 0x00
-        this.fourthPacket[25] = 0x00
-        this.fourthPacket[26] = 0x00
-        this.fourthPacket[27] = 0x00
-        this.fourthPacket[28] = 0x00
-        this.fourthPacket[29] = 0x00
-        this.fourthPacket[30] = 0x00
-        this.fourthPacket[31] = 0x00
-        this.fourthPacket[32] = 0x00
-        this.fourthPacket[33] = 0x00
-        this.fourthPacket[34] = 0x00
-        this.fourthPacket[35] = 0x00
-        this.fourthPacket[36] = 0x00
-        this.fourthPacket[37] = 0x00
-        this.fourthPacket[38] = 0x00
-        this.fourthPacket[39] = 0x00
-        this.fourthPacket[40] = 0x00
-        this.fourthPacket[41] = 0x00
-        this.fourthPacket[42] = 0x00
-        this.fourthPacket[43] = 0x00
-        this.fourthPacket[44] = 0x00
-        this.fourthPacket[45] = 0x00
-        this.fourthPacket[46] = 0x00
-        this.fourthPacket[47] = 0x00
-        this.fourthPacket[48] = 0x00
-        this.fourthPacket[49] = 0x00
-        this.fourthPacket[50] = 0x00
-        this.fourthPacket[51] = 0x00
-        this.fourthPacket[52] = 0x00
-        this.fourthPacket[53] = 0x00
-        this.fourthPacket[54] = 0x00
-        this.fourthPacket[55] = 0x00
-        this.fourthPacket[56] = 0x00
-        this.fourthPacket[57] = 0x00
-        this.fourthPacket[58] = 0x00
-        this.fourthPacket[59] = 0x00
-        this.fourthPacket[60] = 0x00
-        this.fourthPacket[61] = 0x00
-        this.fourthPacket[62] = 0x00
-        this.fourthPacket[63] = 0x00
+    }
+
+    private handleDelay(delayMs: number): { eventDelay: number, extraDelay?: number } {
+        if (delayMs <= 1070) {
+            return {eventDelay: Math.floor(delayMs / 10)};
+        } else {
+            const extraUnits = Math.floor(delayMs / 200);
+            const rem = delayMs % 200;
+            return {eventDelay: Math.max(1, Math.floor(rem / 10)), extraDelay: extraUnits};
+        }
+    }
+
+    addKeyPress(keyCode: KeyCode | number, delayMs: number = 10) {
+        const {eventDelay, extraDelay} = this.handleDelay(delayMs);
+        this.addEvent(eventDelay, keyCode);
+        if (extraDelay) {
+            this.addEvent(extraDelay, 0x03);
+        }
+        return this;
+    }
+
+    addKeyRelease(keyCode: KeyCode | number, delayMs: number = 10) {
+        const {eventDelay, extraDelay} = this.handleDelay(delayMs);
+        this.addEvent(0x80 | eventDelay, keyCode);
+        if (extraDelay) {
+            this.addEvent(extraDelay, 0x03);
+        }
+        return this;
+    }
+
+    addMousePress(button: MouseMacroEvent, delayMs: number = 10) {
+        return this.addKeyPress(button, delayMs);
+    }
+
+    addMouseRelease(button: MouseMacroEvent, delayMs: number = 10) {
+        return this.addKeyRelease(button, delayMs);
+    }
+
+    addDelay(ms: number) {
+        const units = Math.floor(ms / 200);
+        if (units > 0) {
+            this.addEvent(Math.min(units, 0xFF), 0x03);
+        }
+        return this;
+    }
+
+    addEvent(byte1: number, byte2: number) {
+        this.macroEvents.push(byte1, byte2);
+        return this;
     }
 
     setMacroButton(button: Buttons) {
@@ -293,6 +204,24 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
     }
 
     build(mode: ConnectionMode): Buffer[] {
+        this.secondPacket[29] = this.macroEvents.length / 2
+
+        // Clear events area first
+        this.secondPacket.fill(0, 30);
+        this.thirdPacket.fill(0, 4);
+
+        let eventByteIndex = 0;
+
+        // Fill Second Packet (17 events max, 34 bytes)
+        for (let i = 30; i < 64 && eventByteIndex < this.macroEvents.length; i++) {
+            this.secondPacket[i] = this.macroEvents[eventByteIndex++];
+        }
+
+        // Fill the Third Packet (30 events max, 60 bytes)
+        for (let i = 4; i < 64 && eventByteIndex < this.macroEvents.length; i++) {
+            this.thirdPacket[i] = this.macroEvents[eventByteIndex++];
+        }
+
         const checksum = this.calculateChecksum()
 
         this.fourthPacket[10] = (checksum >> 8) & 0xff

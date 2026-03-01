@@ -10,6 +10,8 @@ import {
     macroTemplates, Modifiers
 } from "./protocols/MacrosBuilder.js";
 
+import {CustomMacroBuilder, CUSTOM_MACRO_BUTTONS, MacroSettings, MouseMacroEvent} from "./protocols/CustomMacroBuilder.js";
+
 export {
     AttackSharkX11,
     UserPreferencesBuilder,
@@ -23,7 +25,10 @@ export {
     FirmwareAction,
     Modifiers,
     KeyCode,
-
+    CustomMacroBuilder,
+    CUSTOM_MACRO_BUTTONS,
+    MacroSettings,
+    MouseMacroEvent
 };
 
 export * from "./types.js";
