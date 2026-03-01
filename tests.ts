@@ -13,7 +13,7 @@ const driver = new AttackSharkX11()
 try {
     const customMacro = new CustomMacroBuilder()
         .setMacroButton(Buttons.EXTRA_BUTTON_5)
-        .setPlayOptions(MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY, 5)
+        .setPlayOptions(MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY, 1)
         .addEvent(KeyCode.A, 10)
         .addEvent(KeyCode.A, 10, true)
         .addEvent(MouseMacroEvent.LEFT_CLICK, 20)
