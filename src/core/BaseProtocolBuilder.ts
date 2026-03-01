@@ -69,7 +69,7 @@ export interface BaseProtocolBuilder {
      * Returns the final buffer to be sent to the device
      */
     // @ts-ignore
-    build(mode: ConnectionMode): Buffer
+    build(mode: ConnectionMode): Buffer | Buffer[]
 
     /**
      * Hexadecimal representation of the buffer (for debugging)

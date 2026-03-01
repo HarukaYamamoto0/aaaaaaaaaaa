@@ -13,6 +13,7 @@ import {
 import {InternalStateResetReportBuilder} from "../protocols/InternalStateResetReportBuilder.js";
 import {delay} from "../utils/delay.js";
 import DpiBuilder from "../protocols/DpiBuilder.js";
+import {CustomMacroBuilder} from "../protocols/CustomMacroBuilder.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -138,6 +139,45 @@ export class AttackSharkX11 {
             pollingRateProtocol.wValue,
             pollingRateProtocol.wIndex
         );
+    }
+
+    async setCustomMacro(macro: CustomMacroBuilder) {
+        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = macro.build(this.connectionMode)
+
+        await this.commandTransfer(
+            setMacroBuffer!,
+            0x21,
+            0x09,
+            0x0308,
+            2,
+        )
+        await delay(500)
+
+        await this.commandTransfer(
+            secondPacket!,
+            0x21,
+            0x09,
+            0x0309,
+            2,
+        )
+        await delay(500)
+
+        await this.commandTransfer(
+            thirdPacket!,
+            0x21,
+            0x09,
+            0x0309,
+            2,
+        )
+        await delay(500)
+
+        await this.commandTransfer(
+            fourthPacket!,
+            0x21,
+            0x09,
+            0x0309,
+            2,
+        )
     }
 
     async setMacro(config: MacroBuilderOptions) {

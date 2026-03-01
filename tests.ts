@@ -1,7 +1,6 @@
 // noinspection ES6RedundantAwait,ES6UnusedImports
 
-import {AttackSharkX11, ConnectionMode, MacroName, MacrosBuilder, macroTemplates} from "./src/index.js";
-import {diffStrings} from "./src/utils/diffStrings.js";
+import {AttackSharkX11, ConnectionMode, KeyCode, MacroName, MacrosBuilder, macroTemplates} from "./src/index.js";
 import {delay} from "./src/utils/delay.js";
 
 const driver = new AttackSharkX11()
@@ -29,12 +28,12 @@ try {
     secondPacket[0] = 0x09 // Header
     secondPacket[1] = 0x40 // Header
     secondPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
-    secondPacket[3] = 0x00
+    secondPacket[3] = 0x00 // Page 0
     secondPacket[4] = MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY
     secondPacket[5] = 0x00
     secondPacket[6] = 0x00
     secondPacket[7] = 0x00
-    secondPacket[8] = 0x09 // referring to THE_NUMBER_OF_TIME_TO_PLAY, which indicates how many times it will repeat the macro.
+    secondPacket[8] = 0xFF // referring to THE_NUMBER_OF_TIME_TO_PLAY, which indicates how many times it will repeat the macro.
     secondPacket[9] = 0x00
     secondPacket[10] = 0x00
     secondPacket[11] = 0x00
@@ -56,125 +55,125 @@ try {
     secondPacket[26] = 0x00
     secondPacket[27] = 0x00
     secondPacket[28] = 0x00
-    secondPacket[29] = 0x02
+    secondPacket[29] = 0x02 // event counter
 
-    secondPacket[30] = 0x01
-    secondPacket[31] = 0x04
-    secondPacket[32] = 0x81
-    secondPacket[33] = 0x04
+    secondPacket[30] = 0x01 // pressed event + delay // reserved for macro events
+    secondPacket[31] = KeyCode.A // reserved for macro events
+    secondPacket[32] = 0x81 // release event + delay // reserved for macro events
+    secondPacket[33] = KeyCode.A // reserved for macro events
 
-    secondPacket[34] = 0x00
-    secondPacket[35] = 0x00
-    secondPacket[36] = 0x00
-    secondPacket[37] = 0x00
-    secondPacket[38] = 0x00
-    secondPacket[39] = 0x00
-    secondPacket[40] = 0x00
-    secondPacket[41] = 0x00
-    secondPacket[42] = 0x00
-    secondPacket[43] = 0x00
-    secondPacket[44] = 0x00
-    secondPacket[45] = 0x00
-    secondPacket[46] = 0x00
-    secondPacket[47] = 0x00
-    secondPacket[48] = 0x00
-    secondPacket[49] = 0x00
-    secondPacket[50] = 0x00
-    secondPacket[51] = 0x00
-    secondPacket[52] = 0x00
-    secondPacket[53] = 0x00
-    secondPacket[54] = 0x00
-    secondPacket[55] = 0x00
-    secondPacket[56] = 0x00
-    secondPacket[57] = 0x00
-    secondPacket[58] = 0x00
-    secondPacket[59] = 0x00
-    secondPacket[60] = 0x00
-    secondPacket[61] = 0x00
-    secondPacket[62] = 0x00
-    secondPacket[63] = 0x00
+    secondPacket[34] = 0x00 // reserved for macro events
+    secondPacket[35] = 0x00 // reserved for macro events
+    secondPacket[36] = 0x00 // reserved for macro events
+    secondPacket[37] = 0x00 // reserved for macro events
+    secondPacket[38] = 0x00 // reserved for macro events
+    secondPacket[39] = 0x00 // reserved for macro events
+    secondPacket[40] = 0x00 // reserved for macro events
+    secondPacket[41] = 0x00 // reserved for macro events
+    secondPacket[42] = 0x00 // reserved for macro events
+    secondPacket[43] = 0x00 // reserved for macro events
+    secondPacket[44] = 0x00 // reserved for macro events
+    secondPacket[45] = 0x00 // reserved for macro events
+    secondPacket[46] = 0x00 // reserved for macro events
+    secondPacket[47] = 0x00 // reserved for macro events
+    secondPacket[48] = 0x00 // reserved for macro events
+    secondPacket[49] = 0x00 // reserved for macro events
+    secondPacket[50] = 0x00 // reserved for macro events
+    secondPacket[51] = 0x00 // reserved for macro events
+    secondPacket[52] = 0x00 // reserved for macro events
+    secondPacket[53] = 0x00 // reserved for macro events
+    secondPacket[54] = 0x00 // reserved for macro events
+    secondPacket[55] = 0x00 // reserved for macro events
+    secondPacket[56] = 0x00 // reserved for macro events
+    secondPacket[57] = 0x00 // reserved for macro events
+    secondPacket[58] = 0x00 // reserved for macro events
+    secondPacket[59] = 0x00 // reserved for macro events
+    secondPacket[60] = 0x00 // reserved for macro events
+    secondPacket[61] = 0x00 // reserved for macro events
+    secondPacket[62] = 0x00 // reserved for macro events
+    secondPacket[63] = 0x00 // reserved for macro events
 
     const thirdPacket = Buffer.alloc(64)
 
-    thirdPacket[0] = 0x09
-    thirdPacket[1] = 0x40
+    thirdPacket[0] = 0x09 // Header
+    thirdPacket[1] = 0x40 // Header
     thirdPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
-    thirdPacket[3] = 0x01
-    thirdPacket[4] = 0x00
-    thirdPacket[5] = 0x00
-    thirdPacket[6] = 0x00
-    thirdPacket[7] = 0x00
-    thirdPacket[8] = 0x00
-    thirdPacket[9] = 0x00
-    thirdPacket[10] = 0x00
-    thirdPacket[11] = 0x00
-    thirdPacket[12] = 0x00
-    thirdPacket[13] = 0x00
-    thirdPacket[14] = 0x00
-    thirdPacket[15] = 0x00
-    thirdPacket[16] = 0x00
-    thirdPacket[17] = 0x00
-    thirdPacket[18] = 0x00
-    thirdPacket[19] = 0x00
-    thirdPacket[20] = 0x00
-    thirdPacket[21] = 0x00
-    thirdPacket[22] = 0x00
-    thirdPacket[23] = 0x00
-    thirdPacket[24] = 0x00
-    thirdPacket[25] = 0x00
-    thirdPacket[26] = 0x00
-    thirdPacket[27] = 0x00
-    thirdPacket[28] = 0x00
-    thirdPacket[29] = 0x00
-    thirdPacket[30] = 0x00
-    thirdPacket[31] = 0x00
-    thirdPacket[32] = 0x00
-    thirdPacket[33] = 0x00
-    thirdPacket[34] = 0x00
-    thirdPacket[35] = 0x00
-    thirdPacket[36] = 0x00
-    thirdPacket[37] = 0x00
-    thirdPacket[38] = 0x00
-    thirdPacket[39] = 0x00
-    thirdPacket[40] = 0x00
-    thirdPacket[41] = 0x00
-    thirdPacket[42] = 0x00
-    thirdPacket[43] = 0x00
-    thirdPacket[44] = 0x00
-    thirdPacket[45] = 0x00
-    thirdPacket[46] = 0x00
-    thirdPacket[47] = 0x00
-    thirdPacket[48] = 0x00
-    thirdPacket[49] = 0x00
-    thirdPacket[50] = 0x00
-    thirdPacket[51] = 0x00
-    thirdPacket[52] = 0x00
-    thirdPacket[53] = 0x00
-    thirdPacket[54] = 0x00
-    thirdPacket[55] = 0x00
-    thirdPacket[56] = 0x00
-    thirdPacket[57] = 0x00
-    thirdPacket[58] = 0x00
-    thirdPacket[59] = 0x00
-    thirdPacket[60] = 0x00
-    thirdPacket[61] = 0x00
-    thirdPacket[62] = 0x00
-    thirdPacket[63] = 0x00
+    thirdPacket[3] = 0x01 // Page 1
+    thirdPacket[4] = 0x00 // reserved for macro events
+    thirdPacket[5] = 0x00 // reserved for macro events
+    thirdPacket[6] = 0x00 // reserved for macro events
+    thirdPacket[7] = 0x00 // reserved for macro events
+    thirdPacket[8] = 0x00 // reserved for macro events
+    thirdPacket[9] = 0x00 // reserved for macro events
+    thirdPacket[10] = 0x00 // reserved for macro events
+    thirdPacket[11] = 0x00 // reserved for macro events
+    thirdPacket[12] = 0x00 // reserved for macro events
+    thirdPacket[13] = 0x00 // reserved for macro events
+    thirdPacket[14] = 0x00 // reserved for macro events
+    thirdPacket[15] = 0x00 // reserved for macro events
+    thirdPacket[16] = 0x00 // reserved for macro events
+    thirdPacket[17] = 0x00 // reserved for macro events
+    thirdPacket[18] = 0x00 // reserved for macro events
+    thirdPacket[19] = 0x00 // reserved for macro events
+    thirdPacket[20] = 0x00 // reserved for macro events
+    thirdPacket[21] = 0x00 // reserved for macro events
+    thirdPacket[22] = 0x00 // reserved for macro events
+    thirdPacket[23] = 0x00 // reserved for macro events
+    thirdPacket[24] = 0x00 // reserved for macro events
+    thirdPacket[25] = 0x00 // reserved for macro events
+    thirdPacket[26] = 0x00 // reserved for macro events
+    thirdPacket[27] = 0x00 // reserved for macro events
+    thirdPacket[28] = 0x00 // reserved for macro events
+    thirdPacket[29] = 0x00 // reserved for macro events
+    thirdPacket[30] = 0x00 // reserved for macro events
+    thirdPacket[31] = 0x00 // reserved for macro events
+    thirdPacket[32] = 0x00 // reserved for macro events
+    thirdPacket[33] = 0x00 // reserved for macro events
+    thirdPacket[34] = 0x00 // reserved for macro events
+    thirdPacket[35] = 0x00 // reserved for macro events
+    thirdPacket[36] = 0x00 // reserved for macro events
+    thirdPacket[37] = 0x00 // reserved for macro events
+    thirdPacket[38] = 0x00 // reserved for macro events
+    thirdPacket[39] = 0x00 // reserved for macro events
+    thirdPacket[40] = 0x00 // reserved for macro events
+    thirdPacket[41] = 0x00 // reserved for macro events
+    thirdPacket[42] = 0x00 // reserved for macro events
+    thirdPacket[43] = 0x00 // reserved for macro events
+    thirdPacket[44] = 0x00 // reserved for macro events
+    thirdPacket[45] = 0x00 // reserved for macro events
+    thirdPacket[46] = 0x00 // reserved for macro events
+    thirdPacket[47] = 0x00 // reserved for macro events
+    thirdPacket[48] = 0x00 // reserved for macro events
+    thirdPacket[49] = 0x00 // reserved for macro events
+    thirdPacket[50] = 0x00 // reserved for macro events
+    thirdPacket[51] = 0x00 // reserved for macro events
+    thirdPacket[52] = 0x00 // reserved for macro events
+    thirdPacket[53] = 0x00 // reserved for macro events
+    thirdPacket[54] = 0x00 // reserved for macro events
+    thirdPacket[55] = 0x00 // reserved for macro events
+    thirdPacket[56] = 0x00 // reserved for macro events
+    thirdPacket[57] = 0x00 // reserved for macro events
+    thirdPacket[58] = 0x00 // reserved for macro events
+    thirdPacket[59] = 0x00 // reserved for macro events
+    thirdPacket[60] = 0x00 // reserved for macro events
+    thirdPacket[61] = 0x00 // reserved for macro events
+    thirdPacket[62] = 0x00 // reserved for macro events
+    thirdPacket[63] = 0x00 // reserved for macro events
 
     const fourthPacket = Buffer.alloc(64)
 
-    fourthPacket[0] = 0x09
-    fourthPacket[1] = 0x0C
+    fourthPacket[0] = 0x09 // Header
+    fourthPacket[1] = 0x0C // Header
     fourthPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
-    fourthPacket[3] = 0x02
+    fourthPacket[3] = 0x02 // Page 2
     fourthPacket[4] = 0x00
     fourthPacket[5] = 0x00
     fourthPacket[6] = 0x00
     fourthPacket[7] = 0x00
     fourthPacket[8] = 0x00
     fourthPacket[9] = 0x00
-    fourthPacket[10] = 0x00
-    fourthPacket[11] = 0x00 // checksum
+    fourthPacket[10] = 0x00 // Big Endian Checksum
+    fourthPacket[11] = 0x00 // Big Endian Checksum
     fourthPacket[12] = 0x00
     fourthPacket[13] = 0x00
     fourthPacket[14] = 0x00
@@ -277,12 +276,6 @@ try {
         2,
     )
     await delay(500)
-
-    diffStrings(setMacroBuffer.toString(), "083b010200000300000400000100000100000d00000600001200080100000100000100000100000100000100000100000100000900000a00000053")
-    diffStrings(secondPacket.toString("hex"), "09400800000000000100000000000000000000000000000000000000000201048104000000000000000000000000000000000000000000000000000000000000")
-    diffStrings(thirdPacket.toString("hex"), "09400801000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-    diffStrings(fourthPacket.toString("hex"), "090c0802000000000000008d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-
 } finally {
     driver.close()
 }
