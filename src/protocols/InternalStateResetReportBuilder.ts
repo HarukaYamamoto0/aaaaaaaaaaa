@@ -38,29 +38,23 @@ import type {BaseProtocolBuilder} from "../core/BaseProtocolBuilder.js";
  * - Send this report outside a complete configuration update
  */
 export class InternalStateResetReportBuilder implements BaseProtocolBuilder {
+    public static readonly BM_REQUEST_TYPE = 0x21;
+    public static readonly B_REQUEST = 0x09;
+    public static readonly W_VALUE = 0x030C;
+    public static readonly W_INDEX = 2;
+
     readonly buffer: Buffer;
-    public readonly bmRequestType: number = 0x21;
-    public readonly bRequest: number = 0x09;
-    public readonly wValue: number = 0x030C;
-    public readonly wIndex: number = 2;
+    public readonly bmRequestType: number = InternalStateResetReportBuilder.BM_REQUEST_TYPE;
+    public readonly bRequest: number = InternalStateResetReportBuilder.B_REQUEST;
+    public readonly wValue: number = InternalStateResetReportBuilder.W_VALUE;
+    public readonly wIndex: number = InternalStateResetReportBuilder.W_INDEX;
 
     constructor() {
-        this.buffer = Buffer.alloc(10);
-
-        // Report ID (must match low byte of wValue)
-        this.buffer[0] = 0x0c;
-
-        // Static payload observed in official software
-        // Exact semantic meaning unknown, but behavior confirmed as RAM config reset
-        this.buffer[1] = 0x0a;
-        this.buffer[2] = 0x01;
-        this.buffer[3] = 0xfe;
-        this.buffer[4] = 0x01;
-        this.buffer[5] = 0xfe;
-        this.buffer[6] = 0x00;
-        this.buffer[7] = 0x00;
-        this.buffer[8] = 0x00;
-        this.buffer[9] = 0x00;
+        this.buffer = Buffer.from([
+            0x0c, // Report ID (must match low byte of wValue)
+            0x0a, 0x01, 0xfe, 0x01, 0xfe, // Static payload observed in official software
+            0x00, 0x00, 0x00, 0x00 // Padding
+        ]);
     }
 
     calculateChecksum(): number {
@@ -81,7 +75,7 @@ export class InternalStateResetReportBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex");
     }
 
-    compareWitHexString(value: string): boolean {
+    compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }

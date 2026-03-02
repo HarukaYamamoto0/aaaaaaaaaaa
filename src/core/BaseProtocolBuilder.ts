@@ -82,5 +82,5 @@ export interface BaseProtocolBuilder {
      * @param {string} value - The string to compare against the predefined hexadecimal string.
      * @return {boolean} - Returns true if the provided string matches the predefined hexadecimal string, otherwise false.
      */
-    compareWitHexString(value: string): boolean
+    compareWithHexString(value: string): boolean
 }

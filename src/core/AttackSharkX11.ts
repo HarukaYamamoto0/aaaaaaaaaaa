@@ -227,14 +227,14 @@ export class AttackSharkX11 {
     }
 
     async sendInternalStateResetReportBuilder() {
-        let internalStateResetReportBuffer = new InternalStateResetReportBuilder()
+        const builder = new InternalStateResetReportBuilder()
 
         return await this.commandTransfer(
-            internalStateResetReportBuffer.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x030C,
-            2
+            builder.build(this.connectionMode),
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
@@ -253,22 +253,22 @@ export class AttackSharkX11 {
     async setDpi(builder: DpiBuilder) {
         return await this.commandTransfer(
             builder.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x0304,
-            2
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
     async resetDpi() {
-        let dpiProtocol = new DpiBuilder()
+        const builder = new DpiBuilder()
 
         return await this.commandTransfer(
-            dpiProtocol.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x0304,
-            2
+            builder.build(this.connectionMode),
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 

@@ -262,7 +262,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex");
     }
 
-    public compareWitHexString(value: string): boolean {
+    public compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }

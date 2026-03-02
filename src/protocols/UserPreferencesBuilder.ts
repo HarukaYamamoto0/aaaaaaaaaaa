@@ -188,7 +188,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex");
     }
 
-    compareWitHexString(value: string): boolean {
+    compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }
