@@ -54,11 +54,11 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.secondPacket[1] = 0x40 // Header
         this.secondPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
         this.secondPacket[3] = 0x00 // Page 0
-        this.secondPacket[4] = 0x01
+        this.secondPacket[4] = MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY
         this.secondPacket[5] = 0x00
         this.secondPacket[6] = 0x00
         this.secondPacket[7] = 0x00
-        this.secondPacket[8] = 0x00 // referring to THE_NUMBER_OF_TIME_TO_PLAY, which indicates how many times it will repeat the macro.
+        this.secondPacket[8] = 0x01 // referring to THE_NUMBER_OF_TIME_TO_PLAY, which indicates how many times it will repeat the macro.
         this.secondPacket[9] = 0x00
         this.secondPacket[10] = 0x00
         this.secondPacket[11] = 0x00
@@ -129,9 +129,18 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this;
     }
 
-    setPlayOptions(mode: MacroSettings, times: number = 1) {
-        this.secondPacket[4] = mode === MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY ? times : 0x00;
-        this.secondPacket[8] = (mode === MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY && times > 1) ? 0xFF : mode;
+    setPlayOptions(mode: MacroSettings = MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY, times?: number) {
+        this.secondPacket[4] = mode
+
+        if (!times) {
+            this.secondPacket[8] = 0x01
+            return this;
+        }
+        if (times < 1 || times > 255) {
+            throw new Error("The number of loops must be at least 1 (0x01) and at most 255 (0xFF), regardless of the mode.")
+        }
+
+        this.secondPacket[8] = times
         return this;
     }
 
