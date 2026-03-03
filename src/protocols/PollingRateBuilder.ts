@@ -22,7 +22,11 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
     public readonly wValue: number = 0x0306;
     public readonly wIndex: number = 2;
 
-    constructor(options?: PollingRateOptions) {
+    public static readonly DEFAULT_OPTIONS: PollingRateOptions = {
+        rate: PollingRate.eSports
+    };
+
+    constructor(options: PollingRateOptions = {rate: PollingRate.eSports}) {
         this.buffer = Buffer.alloc(9)
         this.buffer[0] = 0x06; // header
         this.buffer[1] = 0x09; // header
@@ -34,11 +38,9 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
         this.buffer[7] = 0x00; // padding
         this.buffer[8] = 0x00; // padding
 
-        const defaultOptions = {
-            rate: PollingRate.eSports
-        } as PollingRateOptions
+        const config = {...PollingRateBuilder.DEFAULT_OPTIONS, ...options};
 
-        this.setPollingRate(options?.rate ?? defaultOptions.rate)
+        this.setPollingRate(config.rate)
     }
 
     calculateChecksum(): number {

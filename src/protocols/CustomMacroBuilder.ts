@@ -32,6 +32,15 @@ export enum MouseMacroEvent {
     BACKWARD_CLICK = 0xf4,
 }
 
+export interface CustomMacroBuilderOptions {
+    playOptions: {
+        mode: MacroSettings,
+        times: number
+    }
+    targetButton: Buttons
+    macroEvents: number[]
+}
+
 export class CustomMacroBuilder implements BaseProtocolBuilder {
     readonly buffer: Buffer = Buffer.alloc(0);
     public readonly bmRequestType: number = 0x21;
@@ -46,8 +55,17 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 
     private macroEvents: number[] = []
 
+    public static readonly DEFAULT_OPTIONS: CustomMacroBuilderOptions = {
+        playOptions: {
+            mode: MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY,
+            times: 1
+        },
+        targetButton: Buttons.BACKWARD,
+        macroEvents: []
+    };
+
     // noinspection FunctionTooLongJS
-    constructor() {
+    constructor(options?: CustomMacroBuilderOptions) {
         this.defineMacroButton = new MacrosBuilder()
 
         this.secondPacket[0] = 0x09 // Header
@@ -103,6 +121,11 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.fourthPacket[9] = 0x00
         this.fourthPacket[10] = 0x00 // Big Endian Checksum
         this.fourthPacket[11] = 0x00 // Big Endian Checksum
+
+        const config = {...CustomMacroBuilder.DEFAULT_OPTIONS, ...options};
+
+        this.setPlayOptions(config.playOptions.mode, config.playOptions.times)
+        this.setTargetButton(config.targetButton)
     }
 
     private handleDelay(delayMs: number): { eventDelay: number, extraDelay?: number } {
@@ -146,7 +169,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this;
     }
 
-    setMacroButton(button: Buttons) {
+    setTargetButton(button: Buttons) {
         let buttonMap: CUSTOM_MACRO_BUTTONS
         let macroTemplate: MacroTuple
 

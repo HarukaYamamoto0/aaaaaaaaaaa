@@ -45,6 +45,13 @@ export class DpiBuilder implements BaseProtocolBuilder {
 
     stages: [number, number, number, number, number, number] = [800, 1600, 2400, 3200, 5000, 22000];
 
+    public static readonly DEFAULT_OPTIONS: DpiBuilderOptions = {
+        angleSnap: false,
+        ripplerControl: true,
+        dpiValues: [800, 1600, 2400, 3200, 5000, 22000],
+        activeStage: StageIndex.SECOND,
+    };
+
     // noinspection FunctionTooLongJS
     constructor(options?: DpiBuilderOptions) {
         this.buffer = Buffer.alloc(56)
@@ -116,14 +123,8 @@ export class DpiBuilder implements BaseProtocolBuilder {
         this.buffer[54] = 0x00 // padding wireless mode
         this.buffer[55] = 0x00 // padding wireless mode
 
-        const defaultOptions: DpiBuilderOptions = {
-            angleSnap: false,
-            ripplerControl: true,
-            dpiValues: [800, 1600, 2400, 3200, 5000, 22000],
-            activeStage: StageIndex.SECOND,
-        };
 
-        const config = {...defaultOptions, ...options};
+        const config = {...DpiBuilder.DEFAULT_OPTIONS, ...options};
 
         this.setAngleSnap(config.angleSnap)
             .setRipplerControl(config.ripplerControl)
