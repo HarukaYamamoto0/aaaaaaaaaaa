@@ -416,7 +416,6 @@ export class MacrosBuilder implements BaseProtocolBuilder {
 
         const config = {...MacrosBuilder.DEFAULT_MACROS, ...options};
 
-        // TODO: if (config.left)
         if (config.left !== undefined) this.setMacro(Button.LEFT, config.left);
         if (config.right !== undefined) this.setMacro(Button.RIGHT, config.right);
         if (config.middle !== undefined) this.setMacro(Button.MIDDLE, config.middle);

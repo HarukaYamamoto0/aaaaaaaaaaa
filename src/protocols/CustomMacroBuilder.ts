@@ -5,7 +5,8 @@ import {
     MacroName,
     MacrosBuilder,
     macroTemplates,
-    type MacroTuple
+    type MacroTuple,
+    type MacroBuilderOptions
 } from "./MacrosBuilder.js";
 
 export enum CUSTOM_MACRO_BUTTONS {
@@ -40,6 +41,7 @@ export interface CustomMacroBuilderOptions {
     targetButton?: Button
     // ⚠️ Use these parameters unless you are certain that this class works; I do not recommend using them directly ⚠️
     macroEvents?: number[]
+    macrosBuilder?: MacrosBuilder | MacroBuilderOptions
 }
 
 export class CustomMacroBuilder implements BaseProtocolBuilder {
@@ -61,16 +63,14 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
             mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
             times: 1
         },
-        targetButton: Button.BACKWARD
+        macrosBuilder: new MacrosBuilder(),
     };
 
     // noinspection FunctionTooLongJS
     constructor(options?: CustomMacroBuilderOptions) {
-        this.defineMacroButton = new MacrosBuilder()
-
         this.secondPacket[0] = 0x09 // Header
         this.secondPacket[1] = 0x40 // Header
-        this.secondPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.secondPacket[2] = 0x00
         this.secondPacket[3] = 0x00 // Page 0
         this.secondPacket[4] = MacroMode.THE_NUMBER_OF_TIME_TO_PLAY
         this.secondPacket[5] = 0x00
@@ -104,14 +104,14 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 
         this.thirdPacket[0] = 0x09 // Header
         this.thirdPacket[1] = 0x40 // Header
-        this.thirdPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.thirdPacket[2] = 0x00
         this.thirdPacket[3] = 0x01 // Page 1
 
         // Fourth Packet
 
         this.fourthPacket[0] = 0x09 // Header
         this.fourthPacket[1] = 0x0C // Header
-        this.fourthPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.fourthPacket[2] = 0x00
         this.fourthPacket[3] = 0x02 // Page 2
         this.fourthPacket[4] = 0x00
         this.fourthPacket[5] = 0x00
@@ -124,6 +124,8 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 
         const config = {...CustomMacroBuilder.DEFAULT_OPTIONS, ...options};
 
+        this.defineMacroButton = CustomMacroBuilder.DEFAULT_OPTIONS.macrosBuilder! as MacrosBuilder
+        if (config.macrosBuilder !== undefined) this.defineMacroButton = config.macrosBuilder instanceof MacrosBuilder ? config.macrosBuilder : new MacrosBuilder(config.macrosBuilder)
         if (config.playOptions !== undefined) this.setPlayOptions(config.playOptions.mode, config.playOptions.times)
         if (config.targetButton !== undefined) this.setTargetButton(config.targetButton)
         if (config.macroEvents && config.macroEvents.length > 0) this.macroEvents.push(...config.macroEvents)
@@ -170,7 +172,10 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this;
     }
 
-    setTargetButton(button: Button) {
+    setTargetButton(button: Button, macrosBuilder?: MacrosBuilder | MacroBuilderOptions) {
+        if (macrosBuilder !== undefined) {
+            this.defineMacroButton = macrosBuilder instanceof MacrosBuilder ? macrosBuilder : new MacrosBuilder(macrosBuilder)
+        }
         let buttonMap: CUSTOM_MACRO_BUTTONS
         let macroTemplate: MacroTuple
 
@@ -199,7 +204,6 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
                 throw new Error("Unsupported button")
         }
 
-        // TODO: This resets the buttons to the default; I need to ask the button mapping builder to avoid overwriting them.
         this.defineMacroButton.setMacro(button, macroTemplate)
 
         this.secondPacket[2] = buttonMap
