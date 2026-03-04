@@ -5,3 +5,4 @@ export * from "./protocols/PollingRateBuilder.js";
 export * from "./protocols/DpiBuilder.js";
 export * from "./protocols/MacrosBuilder.js";
 export * from "./protocols/CustomMacroBuilder.js";
+export * from "./utils/delay.js";
