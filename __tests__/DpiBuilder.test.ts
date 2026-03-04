@@ -1,11 +1,10 @@
 import {describe, expect, it} from "bun:test";
 import {ConnectionMode, DpiBuilder} from "../src/index.js";
-import {StageIndex} from "../src/protocols/DpiBuilder.js";
 
-describe ("DpiBuilder", () => {
+describe("DpiBuilder", () => {
     it("should initialize with default buffer", () => {
         const builder = new DpiBuilder();
-        // Default: Angle Snap Off (0x00), Rippler On (0x01), Stages: 800, 1600, 2400, 3200, 5000, 12000
+        // Default: Angle Snap Off (0x00), Rippler On (0x01), Stages: 800, 1600, 2400, 3200, 5000, 22000
         expect(builder.toString()).toBe("04380100013f20201225384b75810000000000000001000002ff000000ff000000ffffff0000ffffff00ffff4000ffffff020f6800000000");
     });
 
@@ -35,7 +34,7 @@ describe ("DpiBuilder", () => {
 
     it("should set current stage", () => {
         const builder = new DpiBuilder();
-        builder.setCurrentStage(StageIndex.FOURTH);
+        builder.setCurrentStage(4);
         expect(builder.buffer[24]).toBe(0x04);
     });
 
@@ -43,41 +42,41 @@ describe ("DpiBuilder", () => {
         const builder = new DpiBuilder();
 
         // 800 DPI -> 0x12
-        builder.setDpiValue(StageIndex.FIRST, 800);
+        builder.setDpiValue(1, 800);
         expect(builder.buffer[8]).toBe(0x12);
 
         // 1600 DPI -> 0x25
-        builder.setDpiValue(StageIndex.SECOND, 1600);
+        builder.setDpiValue(2, 1600);
         expect(builder.buffer[9]).toBe(0x25);
 
         // Test throw for unsupported DPI
-        expect(() => builder.setDpiValue(StageIndex.FIRST, 99999)).toThrow();
+        expect(() => builder.setDpiValue(1, 99999)).toThrow();
     });
 
     it("should update stage mask and high stage flags during build", () => {
         const builder = new DpiBuilder();
 
-        // Default stages: 800, 1600, 2400, 3200, 5000, 12000
-        // 12000 is > 10000 but NOT > 12000
+        // Default stages: 800, 1600, 2400, 3200, 5000, 22000
+        // 22000 is > 10000 and > 12000
         // High stage flags (index 16-21) for values > 10000
         // Stage mask (index 6-7) for values > 12000
 
         builder.build(ConnectionMode.Wired);
 
-        // 12000 (stage 6) is > 10000, so index 21 (16 + 5) should be 1
+        // 22000 (stage 6) is > 10000, so index 21 (16 + 5) should be 1
         expect(builder.buffer[21]).toBe(0x01);
         expect(builder.buffer[20]).toBe(0x00); // 5000 is not > 10000
 
-        // None are > 12000, so mask should be 0
-        expect(builder.buffer[6]).toBe(0x00);
-        expect(builder.buffer[7]).toBe(0x00);
+        // 22000 is > 12000, so mask should be 0x20 (bit 5)
+        expect(builder.buffer[6]).toBe(0x20);
+        expect(builder.buffer[7]).toBe(0x20);
 
         // Now set stage 1 to 15000 (> 10000 and > 12000)
-        builder.setDpiValue(StageIndex.FIRST, 15000);
+        builder.setDpiValue(1, 15000);
         builder.build(ConnectionMode.Wired);
 
         expect(builder.buffer[16]).toBe(0x01); // High flag stage 1
-        expect(builder.buffer[6]).toBe(0x01); // Mask stage 1 bit (0x01)
+        expect(builder.buffer[6]).toBe(0x21); // Mask stage 1 bit (0x01) | stage 6 bit (0x20) = 0x21
     });
 
     it("should calculate correct checksum", () => {

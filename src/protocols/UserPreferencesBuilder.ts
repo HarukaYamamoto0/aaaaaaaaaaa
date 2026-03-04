@@ -1,4 +1,4 @@
-import {ConnectionMode, type RGB, type UserPreferenceOptions} from "../types.js";
+import {ConnectionMode} from "../types.js";
 import type {BaseProtocolBuilder} from "../core/BaseProtocolBuilder.js";
 
 /**
@@ -27,6 +27,107 @@ export enum LightMode {
 }
 
 /**
+ * Represents configuration options for building user preferences.
+ */
+export interface UserPreferencesBuilderOptions {
+    /** Light mode enum */
+    lightMode?: LightMode
+
+    /** RGB color (0–255 each channel) */
+    rgb?: RGB
+
+    /** LED speed (1–5) */
+    ledSpeed?: LedSpeed
+
+    /** Sleep time in minutes (0.5–30, step 0.5) */
+    sleepTime?: SleepTime
+
+    /** Deep sleep time in minutes (1–60) */
+    deepSleepTime?: DeepSleepTime
+
+    /** Key response in ms (4–50, step 2) */
+    keyResponse?: KeyResponse
+}
+
+/**
+ * Represents a color in the RGB color model.
+ *
+ * The RGB model describes colors through their red, green, and blue components.
+ * Each component is represented as a numerical value.
+ *
+ * The `r` property corresponds to the red component,
+ * the `g` property corresponds to the green component,
+ * and the `b` property corresponds to the blue component.
+ */
+export interface RGB {
+    r: number,
+    g: number,
+    b: number,
+}
+
+/**
+ * Defines the allowed speed levels for an LED.
+ *
+ * This type represents the range of possible speed values for an LED,
+ * which can be set to one of the following levels:
+ * 1 - Lowest speed
+ * 2 - Low speed
+ * 3 - Medium speed
+ * 4 - High speed
+ * 5 - Highest speed
+ *
+ * It is commonly used to control animations or blinking intervals for LED components.
+ */
+export type LedSpeed = 1 | 2 | 3 | 4 | 5
+
+/**
+ * Represents a KeyResponse, which is a union type of allowed numeric values.
+ *
+ * The KeyResponse type is strictly defined as one of the following values:
+ * 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
+ * 32, 34, 36, 38, 40, 42, 44, 46, 48, 50.
+ *
+ * This type is typically used to define a finite set of acceptable numeric values
+ * for specific use cases or configurations.
+ */
+export type KeyResponse =
+    | 4 | 6 | 8 | 10 | 12 | 14 | 16 | 18
+    | 20 | 22 | 24 | 26 | 28 | 30
+    | 32 | 34 | 36 | 38 | 40
+    | 42 | 44 | 46 | 48 | 50
+
+/**
+ * Represents a type definition for deep sleep time, constrained to specific integer values.
+ *
+ * The `DeepSleepTime` type is intended to define a range of valid values
+ * representing time in minutes, from 1 to 60 inclusive.
+ *
+ * This type can be used for scenarios where precise and limited values are
+ * required to specify the duration of deep sleep in minutes.
+ */
+export type DeepSleepTime =
+    | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+    | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19
+    | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29
+    | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39
+    | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49
+    | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60;
+
+/**
+ * Represents a type that defines allowed sleep durations in increments of 0.5 minutes.
+ *
+ * Each value corresponds to a specific number of minutes that can be selected
+ * for representing sleep time, ranging from 0.5 minutes to 30 minutes.
+ */
+export type SleepTime =
+    | 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4 | 4.5 | 5
+    | 5.5 | 6 | 6.5 | 7 | 7.5 | 8 | 8.5 | 9 | 9.5 | 10
+    | 10.5 | 11 | 11.5 | 12 | 12.5 | 13 | 13.5 | 14 | 14.5 | 15
+    | 15.5 | 16 | 16.5 | 17 | 17.5 | 18 | 18.5 | 19 | 19.5 | 20
+    | 20.5 | 21 | 21.5 | 22 | 22.5 | 23 | 23.5 | 24 | 24.5 | 25
+    | 25.5 | 26 | 26.5 | 27 | 27.5 | 28 | 28.5 | 29 | 29.5 | 30;
+
+/**
  * Builder for user preferences and configurations (Report 0x0305)
  * Handles Light Mode, Deep Sleep, Sleep, Key Response and RGB settings.
  */
@@ -39,16 +140,17 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 
     private deepSleepMinutes: number = 10;
     private ledSpeed: number = 0x03;
-    static DEFAULT_PREFS: UserPreferenceOptions = {
+
+    public static readonly DEFAULT_OPTIONS: UserPreferencesBuilderOptions = {
         lightMode: LightMode.Off,
         rgb: {r: 0, g: 255, b: 0},
-        ledSpeed: 5,
+        ledSpeed: 3,
         sleepTime: 0.5,
         deepSleepTime: 10,
-        keyResponse: 8
+        keyResponse: 4
     };
 
-    constructor() {
+    constructor(options?: UserPreferencesBuilderOptions) {
         this.buffer = Buffer.alloc(15);
         this.buffer[0] = 0x05; // header
         this.buffer[1] = 0x0f; // header
@@ -63,6 +165,15 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
         this.buffer[10] = 0x04; // Default key response (8ms)
         this.buffer[11] = 0x01;
         this.buffer[12] = 0xAF; // Initial checksum
+
+        const config = {...UserPreferencesBuilder.DEFAULT_OPTIONS, ...options};
+
+        if (config.lightMode !== undefined) this.setLightMode(config.lightMode)
+        if (config.deepSleepTime !== undefined) this.setDeepSleep(config.deepSleepTime)
+        if (config.ledSpeed !== undefined) this.setLedSpeed(config.ledSpeed)
+        if (config.rgb !== undefined) this.setRgb(config.rgb)
+        if (config.keyResponse !== undefined) this.setKeyResponse(config.keyResponse)
+        if (config.sleepTime !== undefined) this.setSleep(config.sleepTime)
     }
 
     /**
@@ -81,7 +192,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
      * Sets the deep sleep timer
      * @param minutes Time in minutes (1-60)
      */
-    setDeepSleep(minutes: number): this {
+    setDeepSleep(minutes: DeepSleepTime): this {
         if (minutes < 1 || minutes > 60) {
             throw new Error("the minutes of deep sleep should be in the range of 1 to 60");
         }
@@ -95,7 +206,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
      * Sets the LED animation speed
      * @param speed Speed level (1-5, where 5 is fastest and 1 is slowest)
      */
-    setLedSpeed(speed: number): this {
+    setLedSpeed(speed: LedSpeed): this {
         if (speed < 1 || speed > 5) {
             throw new Error("LED speed must be between 1 and 5");
         }
@@ -148,7 +259,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
      * Sets the sleep timer (normal sleep)
      * @param minutes Time in minutes (0.5 to 30, step example: 0.5, 1, 1.5, 2.5, etc.)
      */
-    setSleep(minutes: number): this {
+    setSleep(minutes: SleepTime): this {
         if (minutes < 0.5 || minutes > 30) {
             throw new Error("Invalid sleep value (0.5–30 min)");
         }
@@ -160,7 +271,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
      * Sets the key response time (debounce)
      * @param ms Time in milliseconds (4-50ms, must be even)
      */
-    setKeyResponse(ms: number): this {
+    setKeyResponse(ms: KeyResponse): this {
         if (ms < 4 || ms > 50 || ms % 2 !== 0) {
             throw new Error("Invalid value (use 4–50ms, step 2)");
         }
@@ -188,7 +299,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex");
     }
 
-    compareWitHexString(value: string): boolean {
+    compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }

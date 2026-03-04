@@ -1,46 +1,15 @@
-import {LightMode} from "./protocols/UserPreferencesBuilder.js";
-import type {MacroTuple} from "./protocols/MacrosBuilder.js";
-
 export enum ConnectionMode {
     Adapter,
     Wired
 }
 
-export interface RGB {
-    r: number,
-    g: number,
-    b: number,
+export enum Button {
+    LEFT = 0,
+    RIGHT = 1,
+    MIDDLE = 2,
+    FORWARD = 3,
+    BACKWARD = 4,
+    DPI = 5,
+    SCROLL_UP = 6,
+    SCROLL_DOWN = 7
 }
-
-export interface UserPreferenceOptions {
-    /** Light mode enum */
-    lightMode: LightMode
-
-    /** RGB color (0–255 each channel) */
-    rgb: RGB
-
-    /** LED speed (1–5) */
-    ledSpeed: number
-
-    /** Sleep time in minutes (0.5–30, step 0.5) */
-    sleepTime: number
-
-    /** Deep sleep time in minutes (1–60) */
-    deepSleepTime: number
-
-    /** Key response in ms (4–50, step 2) */
-    keyResponse: number
-}
-
-export type LedSpeed = 1 | 2 | 3 | 4 | 5
-
-export type KeyResponse =
-    | 4 | 6 | 8 | 10 | 12 | 14 | 16 | 18
-    | 20 | 22 | 24 | 26 | 28 | 30
-    | 32 | 34 | 36 | 38 | 40
-    | 42 | 44 | 46 | 48 | 50
-
-export type MacroConfig = Record<
-    "left" | "right" | "middle" | "extra4" | "extra5",
-    MacroTuple
->

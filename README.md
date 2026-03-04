@@ -8,7 +8,8 @@ Unfortunately, the official configuration software for this mouse is **only avai
 Because of that, and purely as a learning exercise in my free time, I’m analyzing the device’s USB protocol using *
 *Wireshark + USBCAP**, with the goal of eventually building a usable driver / configuration tool for other platforms.
 
-Please note that this driver currently only supports wired and 2.4 GHz wireless modes, as my computer lacks a Bluetooth adapter for testing.  
+Please note that this driver currently only supports wired and 2.4 GHz wireless modes, as my computer lacks a Bluetooth
+adapter for testing.  
 However, I expect Bluetooth behavior to be similar, likely requiring only minor bug fixes.
 
 I’m using **TypeScript** as a testing environment because it speeds up iteration and experimentation.
@@ -22,19 +23,35 @@ The official configuration panel provides the following features:
 ⚠️ = under development<br>
 ❌ = Not yet implemented<br>
 
-| Option                | Description                                              | Implementation |
-|-----------------------|----------------------------------------------------------|----------------|
-| Button settings       | Change button behavior and mappings                      | ✅              |
-| Macro Manager         | Configure and manage custom macros.                      | ✅              |
-| Power                 | Displays mouse battery status                            | ❌              |
-| Reset profile         | Resets the current profile                               | ✅              |
-| DPI settings          | Configure DPI stages and values per stage                | ✅              |
-| Light settings        | Configure the mouse LED                                  | ✅              |
-| Polling rate settings | Set polling rate (4 predefined options)                  | ✅              |
-| Power manager         | Two sliders to configure sleep and deep sleep timing     | ✅              |
-| Key response time     | Slider from 4ms (step 2ms) up to 50ms                    | ✅              |
-| Ripple control        | On / Off                                                 | ✅              |
-| Angle snap            | On / Off                                                 | ✅              |
+| Option                | Description                                          | Implementation |
+|-----------------------|------------------------------------------------------|----------------|
+| Button settings       | Change button behavior and mappings                  | ✅              |
+| Macro Manager         | Configure and manage custom macros.                  | ⚠️             |
+| Power                 | Displays mouse battery status                        | ✅              |
+| Reset profile         | Resets the current profile                           | ✅              |
+| DPI settings          | Configure DPI stages and values per stage            | ✅              |
+| Light settings        | Configure the mouse LED                              | ✅              |
+| Polling rate settings | Set polling rate (4 predefined options)              | ✅              |
+| Power manager         | Two sliders to configure sleep and deep sleep timing | ✅              |
+| Key response time     | Slider from 4ms (step 2ms) up to 50ms                | ✅              |
+| Ripple control        | On / Off                                             | ✅              |
+| Angle snap            | On / Off                                             | ✅              |
+
+Almost everything is already implemented, but some bug fixes are still required, along with additional testing and a few
+extra features.
+
+Individually, however, the protocols are functioning perfectly.
+
+⚠️ **Important:**
+
+Sending multiple configuration reports too quickly can cause the device to become unresponsive.
+
+Always introduce a delay between transfers. The **minimum safe interval is 250 ms or higher**.
+
+If the mouse becomes unresponsive, it can typically be recovered by switching to **Bluetooth mode** using the physical
+button on the device, then switching back to wireless (2.4 GHz) mode.
+
+After recovery, it is recommended to restore the default configuration for safety. ⚠️
 
 ## Linux Access (udev Rules)
 

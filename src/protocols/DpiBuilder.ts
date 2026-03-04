@@ -14,41 +14,55 @@ const OFFSET = {
     STAGES_START: 8,
 } as const;
 
-export enum StageIndex {
-    FIRST = 0x01,
-    SECOND = 0x02,
-    THIRD = 0x03,
-    FOURTH = 0x04,
-    FIFTH = 0x05,
-    SIXTH = 0x06
+/**
+ * Represents a stage index that can have one of the preset integer values.
+ *
+ * This type is used to define a sequential stage in a process or workflow.
+ * It restricts the possible values to integers 1 through 6.
+ */
+export type StageIndex = 1 | 2 | 3 | 4 | 5 | 6
+
+export interface DpiBuilderOptions {
+    angleSnap?: boolean
+    ripplerControl?: boolean
+    dpiValues?: [number, number, number, number, number, number]
+    activeStage?: StageIndex
 }
 
-type StageArrayIndex = 0 | 1 | 2 | 3 | 4 | 5;
-
-class DpiBuilder implements BaseProtocolBuilder {
-    readonly buffer: Buffer;
+/**
+ * Builder for configuring the DPI of the Attack Shark X11
+ */
+export class DpiBuilder implements BaseProtocolBuilder {
+    readonly buffer: Buffer = Buffer.alloc(64);
     public readonly bmRequestType: number = 0x21;
     public readonly bRequest: number = 0x09;
     public readonly wValue: number = 0x0304;
     public readonly wIndex: number = 2;
 
-    private stages: [number, number, number, number, number, number] = [800, 1600, 2400, 3200, 5000, 12000];
+    stages: [number, number, number, number, number, number] = [800, 1600, 2400, 3200, 5000, 22000];
+
+    public static readonly DEFAULT_OPTIONS: DpiBuilderOptions = {
+        angleSnap: false,
+        ripplerControl: true,
+        dpiValues: [800, 1600, 2400, 3200, 5000, 22000],
+        activeStage: 2,
+    };
 
     // noinspection FunctionTooLongJS
-    constructor() {
+    constructor(options?: DpiBuilderOptions) {
         this.buffer = Buffer.alloc(56)
 
         this.buffer[0] = 0x04 // header
         this.buffer[1] = 0x38 // header
         this.buffer[2] = 0x01 // header
 
-        this.buffer[3] = 0x00 // angle snap
-        this.buffer[4] = 0x01 // ripple control
+        this.buffer[OFFSET.ANGLE_SNAP] = 0x00 // angle snap
+        this.buffer[OFFSET.RIPPLER_CONTROL] = 0x01 // ripple control
 
         this.buffer[5] = 0x3F // fixed
 
-        this.buffer[6] = 0x20 // stage mask
-        this.buffer[7] = 0x20 // stage mask
+        this.buffer[OFFSET.STAGE_MASK_A] = 0x20 // stage mask
+        this.buffer[OFFSET.STAGE_MASK_B] = 0x20 // stage mask
 
         this.buffer[8] = 0x12 // stage 1 value
         this.buffer[9] = 0x25 // stage 2 value
@@ -69,7 +83,7 @@ class DpiBuilder implements BaseProtocolBuilder {
 
         this.buffer[22] = 0x00 // fixed
         this.buffer[23] = 0x00 // fixed
-        this.buffer[24] = 0x02 // stage index
+        this.buffer[OFFSET.CURRENT_STAGE] = 0x02 // stage index
         this.buffer[25] = 0xFF // fixed
         this.buffer[26] = 0x00 // fixed
         this.buffer[27] = 0x00 // fixed
@@ -104,6 +118,13 @@ class DpiBuilder implements BaseProtocolBuilder {
         this.buffer[53] = 0x00 // padding wireless mode
         this.buffer[54] = 0x00 // padding wireless mode
         this.buffer[55] = 0x00 // padding wireless mode
+
+        const config = {...DpiBuilder.DEFAULT_OPTIONS, ...options};
+
+        if (config.angleSnap !== undefined) this.setAngleSnap(config.angleSnap)
+        if (config.ripplerControl !== undefined) this.setRipplerControl(config.ripplerControl)
+        if (config.dpiValues !== undefined) this.setStages(config.dpiValues)
+        if (config.activeStage !== undefined) this.setCurrentStage(config.activeStage);
     }
 
     /**
@@ -113,7 +134,7 @@ class DpiBuilder implements BaseProtocolBuilder {
      *                                   If `true`, angle snapping is activated; if `false`, it is disabled.
      * @return {this} The current instance for method chaining.
      */
-    setAngleSnap(active = false): this {
+    public setAngleSnap(active: boolean = false): this {
         this.buffer[OFFSET.ANGLE_SNAP] = active ? 0x01 : 0x00;
         return this;
     }
@@ -124,7 +145,7 @@ class DpiBuilder implements BaseProtocolBuilder {
      * @param {boolean} [active=true] - A boolean value indicating whether the rippler control is active or inactive. Defaults to `true`.
      * @return {this} The current instance for method chaining.
      */
-    setRipplerControl(active = true): this {
+    public setRipplerControl(active: boolean = true): this {
         this.buffer[OFFSET.RIPPLER_CONTROL] = active ? 0x01 : 0x00;
         return this;
     }
@@ -135,7 +156,7 @@ class DpiBuilder implements BaseProtocolBuilder {
      * @param {StageIndex} stage - The stage index to set as the current stage.
      * @return {this} The instance of the current object for method chaining.
      */
-    setCurrentStage(stage: StageIndex): this {
+    public setCurrentStage(stage: StageIndex): this {
         this.buffer[OFFSET.CURRENT_STAGE] = stage;
         return this;
     }
@@ -147,13 +168,29 @@ class DpiBuilder implements BaseProtocolBuilder {
      * @param {number} dpi - The DPI value to assign to the specified stage.
      * @return {this} The instance of the class for method chaining.
      */
-    setDpiValue(stage: StageIndex, dpi: number): this {
-        const index = (stage - 1) as StageArrayIndex;
+    public setDpiValue(stage: StageIndex, dpi: number): this {
+        const index = (stage - 1);
 
         this.stages[index] = dpi;
         this.buffer[OFFSET.STAGES_START + index] = this.encodeDpi(dpi);
 
         return this;
+    }
+
+    /**
+     * Sets the DPI values for all 6 stages.
+     *
+     * @param stages Array of 6 DPI values.
+     * @return {this} The instance for method chaining.
+     */
+    public setStages(stages: [number, number, number, number, number, number]): this {
+        if (!Array.isArray(stages) || stages.length !== this.stages.length)
+            throw new Error(`You need to pass the 6 DPI values; e.g.: [800, 1600, 2400, 3200, 5000, 22000]`)
+
+        for (let i = 0; i < stages.length; i++) {
+            this.setDpiValue((i + 1) as StageIndex, stages[i]!)
+        }
+        return this
     }
 
     private encodeDpi(dpi: number): number {
@@ -174,8 +211,8 @@ class DpiBuilder implements BaseProtocolBuilder {
         const bitValues = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20];
         let mask = 0x00;
 
-        for (let i = 0; i < 6; i++) {
-            if (this.stages[i] as StageArrayIndex > 12000) {
+        for (let i = 0; i < this.stages.length; i++) {
+            if (this.stages[i]! > 12000) {
                 mask |= bitValues[i]!;
             }
         }
@@ -185,9 +222,9 @@ class DpiBuilder implements BaseProtocolBuilder {
     }
 
     private updateHighStageFlags(): void {
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < this.stages.length; i++) {
             this.buffer[OFFSET.EXPANDED_MASK + i] =
-                this.stages[i] as StageArrayIndex > 10000 ? 0x01 : 0x00;
+                this.stages[i]! > 10000 ? 0x01 : 0x00;
         }
     }
 
@@ -202,7 +239,7 @@ class DpiBuilder implements BaseProtocolBuilder {
         return sum & 0xffff
     }
 
-    build(mode: ConnectionMode): Buffer {
+    public build(mode: ConnectionMode): Buffer {
         this.updateStageMask();
         this.updateHighStageFlags();
 
@@ -216,13 +253,11 @@ class DpiBuilder implements BaseProtocolBuilder {
             : this.buffer;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.buffer.toString("hex");
     }
 
-    compareWitHexString(value: string): boolean {
+    public compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }
-
-export default DpiBuilder

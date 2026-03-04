@@ -8,6 +8,10 @@ export enum PollingRate {
     eSports = 1000
 }
 
+export interface PollingRateOptions {
+    rate?: PollingRate
+}
+
 /**
  * Builder for configuring the Polling Rate of the Attack Shark X11
  */
@@ -18,7 +22,11 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
     public readonly wValue: number = 0x0306;
     public readonly wIndex: number = 2;
 
-    constructor() {
+    public static readonly DEFAULT_OPTIONS: PollingRateOptions = {
+        rate: PollingRate.eSports
+    };
+
+    constructor(options: PollingRateOptions = {rate: PollingRate.eSports}) {
         this.buffer = Buffer.alloc(9)
         this.buffer[0] = 0x06; // header
         this.buffer[1] = 0x09; // header
@@ -29,6 +37,10 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
         this.buffer[6] = 0x00; // padding
         this.buffer[7] = 0x00; // padding
         this.buffer[8] = 0x00; // padding
+
+        const config = {...PollingRateBuilder.DEFAULT_OPTIONS, ...options};
+
+        if (config.rate !== undefined) this.setRate(config.rate)
     }
 
     calculateChecksum(): number {
@@ -37,16 +49,17 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
 
     /**
      * Creates an instance already configured for a specific rate
+     * @deprecated
      */
     static forRate(rate: PollingRate): PollingRateBuilder {
-        return new PollingRateBuilder().setPollingRate(rate);
+        return new PollingRateBuilder().setRate(rate);
     }
 
     /**
      * Sets the Polling Rate
      * @param rate Polling rate option
      */
-    setPollingRate(rate: PollingRate): this {
+    setRate(rate: PollingRate): this {
         const rateMap: Record<PollingRate, number> = {
             [PollingRate.powerSaving]: 0x08,
             [PollingRate.office]: 0x04,
@@ -72,7 +85,7 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex");
     }
 
-    compareWitHexString(value: string): boolean {
+    compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }

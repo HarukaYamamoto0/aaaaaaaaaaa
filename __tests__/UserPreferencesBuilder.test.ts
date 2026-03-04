@@ -114,7 +114,7 @@ describe("UserPreferencesBuilder", () => {
 
     it("should initialize with default buffer values", () => {
         const builder = new UserPreferencesBuilder();
-        // Index 0, 1, 2 are headers
+        // Index 0, 1, 2 is headers
         expect(builder.buffer[0]).toBe(0x05);
         expect(builder.buffer[1]).toBe(0x0f);
         expect(builder.buffer[2]).toBe(0x01);
@@ -163,7 +163,9 @@ describe("UserPreferencesBuilder", () => {
             expect(builder.buffer[4]! >> 4).toBe(3);
             expect(builder.buffer[5]!).toBe((0x08 + 60 * 16) & 0xFF);
 
+            // @ts-ignore
             expect(() => builder.setDeepSleep(0)).toThrow();
+            // @ts-ignore
             expect(() => builder.setDeepSleep(61)).toThrow();
         });
 
@@ -174,7 +176,9 @@ describe("UserPreferencesBuilder", () => {
             builder.setLedSpeed(5); // Fastest -> 1
             expect(builder.buffer[4]! & 0x0F).toBe(1);
             
+            // @ts-ignore
             expect(() => builder.setLedSpeed(0)).toThrow();
+            // @ts-ignore
             expect(() => builder.setLedSpeed(6)).toThrow();
         });
 
@@ -185,7 +189,9 @@ describe("UserPreferencesBuilder", () => {
             builder.setSleep(30);
             expect(builder.buffer[9]!).toBe(60);
 
+            // @ts-ignore
             expect(() => builder.setSleep(0.4)).toThrow();
+            // @ts-ignore
             expect(() => builder.setSleep(30.5)).toThrow();
         });
 
@@ -196,8 +202,11 @@ describe("UserPreferencesBuilder", () => {
             builder.setKeyResponse(50);
             expect(builder.buffer[10]!).toBe(25);
 
+            // @ts-ignore
             expect(() => builder.setKeyResponse(2)).toThrow();
+            // @ts-ignore
             expect(() => builder.setKeyResponse(52)).toThrow();
+            // @ts-ignore
             expect(() => builder.setKeyResponse(5)).toThrow(); // Odd number
         });
     });

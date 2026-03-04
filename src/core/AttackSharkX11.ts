@@ -1,19 +1,13 @@
-import type {Device, Endpoint, Interface} from "usb";
+import type {Device, InEndpoint, Interface} from "usb";
 import * as usb from "usb";
-import {PollingRateBuilder, PollingRate} from "../protocols/PollingRateBuilder.js";
-import {UserPreferencesBuilder} from "../protocols/UserPreferencesBuilder.js";
-import {ConnectionMode, type UserPreferenceOptions} from "../types.js";
-import {
-    Buttons,
-    type MacroBuilderOptions,
-    MacroName,
-    MacrosBuilder,
-    macroTemplates
-} from "../protocols/MacrosBuilder.js";
+import {PollingRate, PollingRateBuilder} from "../protocols/PollingRateBuilder.js";
+import {UserPreferencesBuilder, type UserPreferencesBuilderOptions} from "../protocols/UserPreferencesBuilder.js";
+import {type MacroBuilderOptions, MacrosBuilder} from "../protocols/MacrosBuilder.js";
 import {InternalStateResetReportBuilder} from "../protocols/InternalStateResetReportBuilder.js";
 import {delay} from "../utils/delay.js";
-import DpiBuilder from "../protocols/DpiBuilder.js";
-import {CustomMacroBuilder} from "../protocols/CustomMacroBuilder.js";
+import {DpiBuilder} from "../protocols/DpiBuilder.js";
+import {CustomMacroBuilder, type CustomMacroBuilderOptions, MacroMode} from "../protocols/CustomMacroBuilder.js";
+import {Button, ConnectionMode} from "../types.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -26,7 +20,9 @@ export class AttackSharkX11 {
     public readonly productId: number;
     device: Device
     deviceInterface: Interface
-    interruptEndpoint: Endpoint
+    interruptEndpoint: InEndpoint
+
+    private lastBattery: number = -1
 
     constructor() {
         const device = usb.getDeviceList().find(d =>
@@ -61,6 +57,7 @@ export class AttackSharkX11 {
             iface.claim();
         } catch (e: any) {
             if (process.platform === 'win32') {
+                // TODO: Once the driver is complete, remove this verification
                 throw new Error(`Could not claim interface: ${e.message}. On Windows, you might need to use Zadig to install WinUSB driver for Interface 2.`);
             }
             throw e;
@@ -70,7 +67,7 @@ export class AttackSharkX11 {
         if (!interruptEndpoint) {
             throw new Error("interruptEndpoint not found")
         }
-        this.interruptEndpoint = interruptEndpoint
+        this.interruptEndpoint = interruptEndpoint as InEndpoint
     }
 
     /**
@@ -78,13 +75,6 @@ export class AttackSharkX11 {
      */
     get connectionMode(): ConnectionMode {
         return this.productId === PID_WIRELESS ? ConnectionMode.Adapter : ConnectionMode.Wired
-    }
-
-    /**
-     * Check if it's in wireless mode.
-     */
-    get isWireless(): boolean {
-        return this.productId === PID_WIRELESS;
     }
 
     async commandTransfer(
@@ -128,94 +118,138 @@ export class AttackSharkX11 {
         }
     }
 
-    async setPollingRate(rate: PollingRate) {
-        const pollingRateProtocol = new PollingRateBuilder()
-            .setPollingRate(rate)
+    /**
+     * Retrieves the current battery level of the device.
+     * The method interacts with an interrupt endpoint to fetch the battery level
+     * and validates the response data to ensure it is within the acceptable range.
+     *
+     * @return {Promise<number>} A promise that resolves with the current battery level as a percentage (0–100),
+     * or rejects with an error if the data is invalid or if an error occurs during the transfer.
+     * In Wired mode it only returns -1 because it's a charging mode; the battery status is not available in this mode.
+     */
+    async getBatteryLevel(): Promise<number> {
+        if (this.connectionMode == ConnectionMode.Wired) return -1
+        const endpoint = this.interruptEndpoint as InEndpoint;
+
+        return new Promise((resolve, reject) => {
+            endpoint.transfer(64, (err, data) => {
+                if (err) return reject(err);
+                if (!data || data.length < 5 || data[0] !== 0x03 || data[1] !== 0x55 || data[2] !== 0x40 || data[3] !== 0x01) {
+                    return reject(new Error("Invalid battery packet"));
+                }
+
+                const battery = data[4]!;
+
+                if (battery < 0 || battery > 100) {
+                    return reject(
+                        new Error("Battery byte is outside the valid 0–100 range")
+                    );
+                }
+
+                resolve(battery);
+            });
+        });
+    }
+
+    /**
+     * Registers a listener for battery level changes and starts polling for updates.
+     *
+     * @param listener A callback function that receives the updated battery level as a number.
+     *                 The battery level is provided if it has changed since the last update.
+     *                 It is not updated in Wired mode because it is treated as charging the mouse battery.
+     * @return A function that can be called to stop polling for battery level changes and remove the listener.
+     */
+    onBatteryChange(listener: (battery: number) => void): () => void {
+        const endpoint = this.interruptEndpoint as InEndpoint;
+
+        const handleData = (data: Buffer) => {
+            if (!data || data.length < 5 || data[0] !== 0x03 || data[1] !== 0x55 || data[2] !== 0x40 || data[3] !== 0x01) return;
+
+            const battery = data[4];
+            if (!battery) return;
+
+            if (battery !== this.lastBattery) {
+                this.lastBattery = battery;
+                listener(battery);
+            }
+        };
+
+        endpoint.on("data", handleData);
+        endpoint.startPoll(1, 64);
+
+        return () => {
+            endpoint.stopPoll();
+            endpoint.removeListener("data", handleData);
+        };
+    }
+
+    async setPollingRate(rate: PollingRate | PollingRateBuilder) {
+        const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setRate(rate);
 
         return await this.commandTransfer(
-            pollingRateProtocol.build(this.connectionMode),
-            pollingRateProtocol.bmRequestType,
-            pollingRateProtocol.bRequest,
-            pollingRateProtocol.wValue,
-            pollingRateProtocol.wIndex
+            builder.build(this.connectionMode),
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
-    async setCustomMacro(macro: CustomMacroBuilder) {
-        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = macro.build(this.connectionMode)
+    async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions) {
+        const builder = options instanceof CustomMacroBuilder ? options : new CustomMacroBuilder(options)
+        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = builder.build(this.connectionMode)
 
         await this.commandTransfer(
-            setMacroBuffer!,
+            setMacroBuffer,
             0x21,
             0x09,
             0x0308,
             2,
         )
-        await delay(500)
+        await delay(250)
 
         await this.commandTransfer(
-            secondPacket!,
-            0x21,
-            0x09,
-            0x0309,
-            2
+            secondPacket,
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         )
         await delay(500)
 
-        await delay(500)
         await this.commandTransfer(
-            thirdPacket!,
-            0x21,
-            0x09,
-            0x0309,
-            2
+            thirdPacket,
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         )
+        await delay(500)
 
         await this.commandTransfer(
-            fourthPacket!,
-            0x21,
-            0x09,
-            0x0309,
-            2
+            fourthPacket,
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         )
     }
 
-    async setMacro(config: MacroBuilderOptions) {
-        const macroProtocol = new MacrosBuilder()
-            .setMacro(Buttons.LEFT_BUTTON, config.left ?? macroTemplates[MacroName.GLOBAL_LEFT_CLICK])
-            .setMacro(Buttons.RIGHT_BUTTON, config.right ?? macroTemplates[MacroName.GLOBAL_RIGHT_CLICK])
-            .setMacro(Buttons.MIDDLE_BUTTON, config.middle ?? macroTemplates[MacroName.GLOBAL_MIDDLE])
-            .setMacro(Buttons.EXTRA_BUTTON_4, config.extra4 ?? macroTemplates[MacroName.GLOBAL_FORWARD])
-            .setMacro(Buttons.EXTRA_BUTTON_5, config.extra5 ?? macroTemplates[MacroName.GLOBAL_BACKWARD])
-
-        const buffer = macroProtocol.build(this.connectionMode)
+    async setMacro(config: MacroBuilderOptions | MacrosBuilder) {
+        const builder = config instanceof MacrosBuilder ? config : new MacrosBuilder(config);
+        const buffer = builder.build(this.connectionMode);
 
         return this.commandTransfer(
             buffer,
-            macroProtocol.bmRequestType,
-            macroProtocol.bRequest,
-            macroProtocol.wValue,
-            macroProtocol.wIndex
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
-    async setUserPreferences(options: Partial<UserPreferenceOptions> = {}) {
-        const opts: UserPreferenceOptions = {
-            ...UserPreferencesBuilder.DEFAULT_PREFS,
-            ...options,
-            rgb: {
-                ...UserPreferencesBuilder.DEFAULT_PREFS.rgb,
-                ...options.rgb
-            }
-        };
-
-        const builder = new UserPreferencesBuilder()
-            .setLightMode(opts.lightMode)
-            .setLedSpeed(opts.ledSpeed)
-            .setRgb(opts.rgb)
-            .setSleep(opts.sleepTime)
-            .setDeepSleep(opts.deepSleepTime)
-            .setKeyResponse(opts.keyResponse);
+    async setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions) {
+        const builder = options instanceof UserPreferencesBuilder ? options : new UserPreferencesBuilder(options)
 
         return await this.commandTransfer(
             builder.build(this.connectionMode),
@@ -227,14 +261,14 @@ export class AttackSharkX11 {
     }
 
     async sendInternalStateResetReportBuilder() {
-        let internalStateResetReportBuffer = new InternalStateResetReportBuilder()
+        const builder = new InternalStateResetReportBuilder()
 
         return await this.commandTransfer(
-            internalStateResetReportBuffer.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x030C,
-            2
+            builder.build(this.connectionMode),
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
@@ -253,22 +287,22 @@ export class AttackSharkX11 {
     async setDpi(builder: DpiBuilder) {
         return await this.commandTransfer(
             builder.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x0304,
-            2
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
     async resetDpi() {
-        let dpiProtocol = new DpiBuilder()
+        const builder = new DpiBuilder()
 
         return await this.commandTransfer(
-            dpiProtocol.build(this.connectionMode),
-            0x21,
-            0x09,
-            0x0304,
-            2
+            builder.build(this.connectionMode),
+            builder.bmRequestType,
+            builder.bRequest,
+            builder.wValue,
+            builder.wIndex
         );
     }
 
@@ -282,6 +316,19 @@ export class AttackSharkX11 {
             macroProtocol.wValue,
             macroProtocol.wIndex
         )
+    }
+
+    async resetCustomMacro() {
+        const builder = new CustomMacroBuilder({
+            playOptions: {
+                mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
+                times: 1
+            },
+            targetButton: Button.BACKWARD,
+            macroEvents: [],
+        })
+
+        await this.setCustomMacro(builder)
     }
 
     async resetUserPreferences() {
@@ -298,13 +345,15 @@ export class AttackSharkX11 {
 
     async reset() {
         await this.sendInternalStateResetReportBuilder()
-        await delay(500)
+        await delay(250)
         await this.resetDpi()
-        await delay(500)
+        await delay(250)
         await this.resetUserPreferences()
-        await delay(500)
+        await delay(250)
         await this.resetPollingRate()
-        await delay(500)
+        await delay(250)
         await this.resetMacro()
+        await delay(250)
+        await this.resetCustomMacro()
     }
 }

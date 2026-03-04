@@ -1,11 +1,12 @@
 import type {BaseProtocolBuilder} from "../core/BaseProtocolBuilder.js";
-import type {ConnectionMode} from "../types.js";
+import {Button, type ConnectionMode} from "../types.js";
 import {
-    Buttons, KeyCode,
+    KeyCode,
     MacroName,
     MacrosBuilder,
     macroTemplates,
-    type MacroTuple
+    type MacroTuple,
+    type MacroBuilderOptions
 } from "./MacrosBuilder.js";
 
 export enum CUSTOM_MACRO_BUTTONS {
@@ -17,7 +18,7 @@ export enum CUSTOM_MACRO_BUTTONS {
 }
 
 // noinspection JSUnusedGlobalSymbols
-export enum MacroSettings {
+export enum MacroMode {
     THE_NUMBER_OF_TIME_TO_PLAY = 0x00,
     ANY_KEY_PRESS_TO_STOP_PLAYING = 0x01,
     PRESS_AND_HOLD_RELEASE_STOP = 0x02
@@ -32,6 +33,17 @@ export enum MouseMacroEvent {
     BACKWARD_CLICK = 0xf4,
 }
 
+export interface CustomMacroBuilderOptions {
+    playOptions?: {
+        mode?: MacroMode,
+        times?: number
+    }
+    targetButton?: Button
+    // ⚠️ Use these parameters unless you are certain that this class works; I do not recommend using them directly ⚠️
+    macroEvents?: number[]
+    macrosBuilder?: MacrosBuilder | MacroBuilderOptions
+}
+
 export class CustomMacroBuilder implements BaseProtocolBuilder {
     readonly buffer: Buffer = Buffer.alloc(0);
     public readonly bmRequestType: number = 0x21;
@@ -44,17 +56,24 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
     private readonly thirdPacket: Buffer = Buffer.alloc(64)
     private readonly fourthPacket: Buffer = Buffer.alloc(64)
 
-    private macroEvents: number[] = []
+    private readonly macroEvents: number[] = []
+    public static readonly MAX_MACRO_EVENTS = 47;
+
+    public static readonly DEFAULT_OPTIONS: CustomMacroBuilderOptions = {
+        playOptions: {
+            mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
+            times: 1
+        },
+        macrosBuilder: new MacrosBuilder(),
+    };
 
     // noinspection FunctionTooLongJS
-    constructor() {
-        this.defineMacroButton = new MacrosBuilder()
-
+    constructor(options?: CustomMacroBuilderOptions) {
         this.secondPacket[0] = 0x09 // Header
         this.secondPacket[1] = 0x40 // Header
-        this.secondPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.secondPacket[2] = 0x00
         this.secondPacket[3] = 0x00 // Page 0
-        this.secondPacket[4] = MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY
+        this.secondPacket[4] = MacroMode.THE_NUMBER_OF_TIME_TO_PLAY
         this.secondPacket[5] = 0x00
         this.secondPacket[6] = 0x00
         this.secondPacket[7] = 0x00
@@ -86,14 +105,14 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 
         this.thirdPacket[0] = 0x09 // Header
         this.thirdPacket[1] = 0x40 // Header
-        this.thirdPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.thirdPacket[2] = 0x00
         this.thirdPacket[3] = 0x01 // Page 1
 
         // Fourth Packet
 
         this.fourthPacket[0] = 0x09 // Header
         this.fourthPacket[1] = 0x0C // Header
-        this.fourthPacket[2] = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
+        this.fourthPacket[2] = 0x00
         this.fourthPacket[3] = 0x02 // Page 2
         this.fourthPacket[4] = 0x00
         this.fourthPacket[5] = 0x00
@@ -103,6 +122,14 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         this.fourthPacket[9] = 0x00
         this.fourthPacket[10] = 0x00 // Big Endian Checksum
         this.fourthPacket[11] = 0x00 // Big Endian Checksum
+
+        const config = {...CustomMacroBuilder.DEFAULT_OPTIONS, ...options};
+
+        this.defineMacroButton = CustomMacroBuilder.DEFAULT_OPTIONS.macrosBuilder! as MacrosBuilder
+        if (config.macrosBuilder !== undefined) this.defineMacroButton = config.macrosBuilder instanceof MacrosBuilder ? config.macrosBuilder : new MacrosBuilder(config.macrosBuilder)
+        if (config.playOptions !== undefined) this.setPlayOptions(config.playOptions.mode, config.playOptions.times)
+        if (config.targetButton !== undefined) this.setTargetButton(config.targetButton)
+        if (config.macroEvents && config.macroEvents.length > 0) this.macroEvents.push(...config.macroEvents)
     }
 
     private handleDelay(delayMs: number): { eventDelay: number, extraDelay?: number } {
@@ -131,7 +158,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this;
     }
 
-    setPlayOptions(mode: MacroSettings = MacroSettings.THE_NUMBER_OF_TIME_TO_PLAY, times?: number) {
+    setPlayOptions(mode: MacroMode = MacroMode.THE_NUMBER_OF_TIME_TO_PLAY, times?: number) {
         this.secondPacket[4] = mode
 
         if (!times) {
@@ -146,28 +173,31 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this;
     }
 
-    setMacroButton(button: Buttons) {
+    setTargetButton(button: Button, macrosBuilder?: MacrosBuilder | MacroBuilderOptions) {
+        if (macrosBuilder !== undefined) {
+            this.defineMacroButton = macrosBuilder instanceof MacrosBuilder ? macrosBuilder : new MacrosBuilder(macrosBuilder)
+        }
         let buttonMap: CUSTOM_MACRO_BUTTONS
         let macroTemplate: MacroTuple
 
         switch (button) {
-            case Buttons.LEFT_BUTTON:
+            case Button.LEFT:
                 buttonMap = CUSTOM_MACRO_BUTTONS.LEFT_BUTTON
                 macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_LEFT_BUTTON]
                 break
-            case Buttons.RIGHT_BUTTON:
+            case Button.RIGHT:
                 buttonMap = CUSTOM_MACRO_BUTTONS.RIGHT_BUTTON
                 macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_RIGHT_BUTTON]
                 break
-            case Buttons.MIDDLE_BUTTON:
+            case Button.MIDDLE:
                 buttonMap = CUSTOM_MACRO_BUTTONS.MIDDLE_BUTTON
                 macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_MIDDLE_BUTTON]
                 break
-            case Buttons.EXTRA_BUTTON_4:
+            case Button.FORWARD:
                 buttonMap = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_4
                 macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_EXTRA_BUTTON_4]
                 break
-            case Buttons.EXTRA_BUTTON_5:
+            case Button.BACKWARD:
                 buttonMap = CUSTOM_MACRO_BUTTONS.EXTRA_BUTTON_5
                 macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_EXTRA_BUTTON_5]
                 break
@@ -197,8 +227,9 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return sum
     }
 
-    build(mode: ConnectionMode): Buffer[] {
-        this.secondPacket[29] = this.macroEvents.length / 2
+    build(mode: ConnectionMode): [Buffer, Buffer, Buffer, Buffer] {
+        const eventCount = Math.floor(this.macroEvents.length / 2);
+        this.secondPacket[29] = Math.min(eventCount, CustomMacroBuilder.MAX_MACRO_EVENTS);
 
         // Clear events area first
         this.secondPacket.fill(0, 30);
@@ -228,7 +259,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
         return this.buffer.toString("hex")
     }
 
-    compareWitHexString(value: string): boolean {
+    compareWithHexString(value: string): boolean {
         return this.toString() == value
     }
 }

@@ -67,11 +67,11 @@ describe("PollingRateBuilder", () => {
     it("should re-calculate checksum when polling rate is changed", () => {
         const builder = new PollingRateBuilder();
         
-        builder.setPollingRate(PollingRate.office); // 0x04
+        builder.setRate(PollingRate.office); // 0x04
         builder.build(ConnectionMode.Adapter);
         expect(builder.buffer[4]!).toBe(0xFB); // 0xFF - 0x04
 
-        builder.setPollingRate(PollingRate.gaming); // 0x02
+        builder.setRate(PollingRate.gaming); // 0x02
         builder.build(ConnectionMode.Adapter);
         expect(builder.buffer[4]!).toBe(0xFD); // 0xFF - 0x02
     });
