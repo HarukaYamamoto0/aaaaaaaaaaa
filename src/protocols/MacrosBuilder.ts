@@ -1,5 +1,5 @@
 import type {BaseProtocolBuilder} from "../core/BaseProtocolBuilder.js";
-import type {ConnectionMode} from "../types.js";
+import {Button, type ConnectionMode} from "../types.js";
 
 export type MacroTuple = readonly [
     FirmwareAction,
@@ -319,29 +319,37 @@ export const macroTemplates: MacroTemplate = {
     [MacroName.CUSTOM_MACRO_EXTRA_BUTTON_5]: [FirmwareAction.CUSTOM_MACRO, Modifiers.NONE, 0x08],
 } satisfies Record<MacroName, MacroTuple>;
 
-export enum Buttons {
+enum InternalButtons {
     LEFT = 0,
     RIGHT = 1,
     MIDDLE = 2,
     FORWARD = 3,
     BACKWARD = 4,
-
-    // EXTENDED BUTTONS - This feature isn't available in the official control panel, but the mouse's chipset does support it.
     DPI = 6,
     SCROLL_UP = 16,
     SCROLL_DOWN = 17,
 }
 
-const BUTTON_OFFSET: Record<Buttons, number> = {
-    [Buttons.LEFT]: 3,
-    [Buttons.RIGHT]: 6,
-    [Buttons.MIDDLE]: 9,
-    [Buttons.FORWARD]: 21,
-    [Buttons.BACKWARD]: 24,
+const internalButtonsMap: Record<Button, InternalButtons> = {
+    [Button.LEFT]: InternalButtons.LEFT,
+    [Button.RIGHT]: InternalButtons.RIGHT,
+    [Button.MIDDLE]: InternalButtons.MIDDLE,
+    [Button.FORWARD]: InternalButtons.FORWARD,
+    [Button.BACKWARD]: InternalButtons.BACKWARD,
+    [Button.DPI]: InternalButtons.DPI,
+    [Button.SCROLL_UP]: InternalButtons.SCROLL_UP,
+    [Button.SCROLL_DOWN]: InternalButtons.SCROLL_DOWN
+}
 
-    [Buttons.DPI]: 18,
-    [Buttons.SCROLL_UP]: 51,
-    [Buttons.SCROLL_DOWN]: 54,
+const BUTTON_OFFSET: Record<InternalButtons, number> = {
+    [InternalButtons.LEFT]: 3,
+    [InternalButtons.RIGHT]: 6,
+    [InternalButtons.MIDDLE]: 9,
+    [InternalButtons.FORWARD]: 21,
+    [InternalButtons.BACKWARD]: 24,
+    [InternalButtons.DPI]: 18,
+    [InternalButtons.SCROLL_UP]: 51,
+    [InternalButtons.SCROLL_DOWN]: 54,
 };
 
 export interface MacroBuilderOptions {
@@ -352,12 +360,7 @@ export interface MacroBuilderOptions {
     backward?: MacroTuple,
     dpi?: MacroTuple,
     scrollUp?: MacroTuple,
-    scrollDown?: MacroTuple,
-
-    /** @deprecated Use forward instead */
-    extra4?: MacroTuple,
-    /** @deprecated Use backward instead */
-    extra5?: MacroTuple,
+    scrollDown?: MacroTuple
 }
 
 /**
@@ -413,20 +416,21 @@ export class MacrosBuilder implements BaseProtocolBuilder {
 
         const config = {...MacrosBuilder.DEFAULT_MACROS, ...options};
 
-        if (config.left) this.setMacro(Buttons.LEFT, config.left);
-        if (config.right) this.setMacro(Buttons.RIGHT, config.right);
-        if (config.middle) this.setMacro(Buttons.MIDDLE, config.middle);
+        // TODO: if (config.left)
+        if (config.left) this.setMacro(Button.LEFT, config.left);
+        if (config.right) this.setMacro(Button.RIGHT, config.right);
+        if (config.middle) this.setMacro(Button.MIDDLE, config.middle);
 
         // Handle forward/backward with compatibility for extra4/extra5
         const forward = config.forward ?? config.forward;
-        if (forward) this.setMacro(Buttons.FORWARD, forward);
+        if (forward) this.setMacro(Button.FORWARD, forward);
 
         const backward = config.backward ?? config.backward;
-        if (backward) this.setMacro(Buttons.BACKWARD, backward);
+        if (backward) this.setMacro(Button.BACKWARD, backward);
 
-        if (config.dpi) this.setMacro(Buttons.DPI, config.dpi);
-        if (config.scrollUp) this.setMacro(Buttons.SCROLL_UP, config.scrollUp);
-        if (config.scrollDown) this.setMacro(Buttons.SCROLL_DOWN, config.scrollDown);
+        if (config.dpi) this.setMacro(Button.DPI, config.dpi);
+        if (config.scrollUp) this.setMacro(Button.SCROLL_UP, config.scrollUp);
+        if (config.scrollDown) this.setMacro(Button.SCROLL_DOWN, config.scrollDown);
     }
 
     /**
@@ -436,14 +440,16 @@ export class MacrosBuilder implements BaseProtocolBuilder {
      * @param macro A tuple containing [Action, Modifier, KeyCode/Value].
      * @return {this} The current instance for method chaining.
      */
-    setMacro(button: Buttons, macro: MacroTuple): this {
+    setMacro(button: Button, macro: MacroTuple): this {
         const [
             firmwareAction = FirmwareAction.DISABLE_BUTTON,
             modifier = Modifiers.NONE,
             keyCode = KeyCode.NONE
         ] = macro;
 
-        const offset = BUTTON_OFFSET[button];
+        const internalButton = internalButtonsMap[button]
+
+        const offset = BUTTON_OFFSET[internalButton];
         if (offset === undefined) {
             throw new Error(`Invalid button identifier: ${button}`);
         }

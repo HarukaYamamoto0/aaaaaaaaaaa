@@ -9,7 +9,7 @@ export enum PollingRate {
 }
 
 export interface PollingRateOptions {
-    rate: PollingRate
+    rate?: PollingRate
 }
 
 /**
@@ -40,7 +40,7 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
 
         const config = {...PollingRateBuilder.DEFAULT_OPTIONS, ...options};
 
-        this.setPollingRate(config.rate)
+        if (config.rate) this.setRate(config.rate)
     }
 
     calculateChecksum(): number {
@@ -52,14 +52,14 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
      * @deprecated
      */
     static forRate(rate: PollingRate): PollingRateBuilder {
-        return new PollingRateBuilder().setPollingRate(rate);
+        return new PollingRateBuilder().setRate(rate);
     }
 
     /**
      * Sets the Polling Rate
      * @param rate Polling rate option
      */
-    setPollingRate(rate: PollingRate): this {
+    setRate(rate: PollingRate): this {
         const rateMap: Record<PollingRate, number> = {
             [PollingRate.powerSaving]: 0x08,
             [PollingRate.office]: 0x04,

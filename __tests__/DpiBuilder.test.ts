@@ -1,8 +1,7 @@
 import {describe, expect, it} from "bun:test";
 import {ConnectionMode, DpiBuilder} from "../src/index.js";
-import {StageIndex} from "../src/protocols/DpiBuilder.js";
 
-describe ("DpiBuilder", () => {
+describe("DpiBuilder", () => {
     it("should initialize with default buffer", () => {
         const builder = new DpiBuilder();
         // Default: Angle Snap Off (0x00), Rippler On (0x01), Stages: 800, 1600, 2400, 3200, 5000, 22000
@@ -35,7 +34,7 @@ describe ("DpiBuilder", () => {
 
     it("should set current stage", () => {
         const builder = new DpiBuilder();
-        builder.setCurrentStage(StageIndex.FOURTH);
+        builder.setCurrentStage(4);
         expect(builder.buffer[24]).toBe(0x04);
     });
 
@@ -43,15 +42,15 @@ describe ("DpiBuilder", () => {
         const builder = new DpiBuilder();
 
         // 800 DPI -> 0x12
-        builder.setDpiValue(StageIndex.FIRST, 800);
+        builder.setDpiValue(1, 800);
         expect(builder.buffer[8]).toBe(0x12);
 
         // 1600 DPI -> 0x25
-        builder.setDpiValue(StageIndex.SECOND, 1600);
+        builder.setDpiValue(2, 1600);
         expect(builder.buffer[9]).toBe(0x25);
 
         // Test throw for unsupported DPI
-        expect(() => builder.setDpiValue(StageIndex.FIRST, 99999)).toThrow();
+        expect(() => builder.setDpiValue(1, 99999)).toThrow();
     });
 
     it("should update stage mask and high stage flags during build", () => {
@@ -73,7 +72,7 @@ describe ("DpiBuilder", () => {
         expect(builder.buffer[7]).toBe(0x20);
 
         // Now set stage 1 to 15000 (> 10000 and > 12000)
-        builder.setDpiValue(StageIndex.FIRST, 15000);
+        builder.setDpiValue(1, 15000);
         builder.build(ConnectionMode.Wired);
 
         expect(builder.buffer[16]).toBe(0x01); // High flag stage 1

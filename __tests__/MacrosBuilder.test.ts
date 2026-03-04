@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import {MacrosBuilder, Buttons, macroTemplates, MacroName, FirmwareAction} from "../src/protocols/MacrosBuilder.js";
-import { ConnectionMode } from "../src/types.js";
+import {describe, expect, it} from "bun:test";
+import {Button, ConnectionMode, FirmwareAction, MacroName, MacrosBuilder, macroTemplates} from "../src/index.js";
 
 describe("MacrosBuilder", () => {
     it("should initialize with default buffer", () => {
@@ -30,9 +29,9 @@ describe("MacrosBuilder", () => {
     it("should set a macro correctly", () => {
         const builder = new MacrosBuilder();
         const macro = macroTemplates[MacroName.SHORTCUT_COPY]; // [FirmwareAction.KEYBOARD, Modifiers.CTRL, KeyCode.C]
-        
-        builder.setMacro(Buttons.LEFT, macro);
-        
+
+        builder.setMacro(Button.LEFT, macro);
+
         expect(builder.buffer[3]).toBe(0x11); // KEYBOARD
         expect(builder.buffer[4]).toBe(0x01); // CTRL
         expect(builder.buffer[5]).toBe(0x06); // C
@@ -50,24 +49,24 @@ describe("MacrosBuilder", () => {
 
     it("should support method chaining", () => {
         const builder = new MacrosBuilder();
-        const result = builder.setMacro(Buttons.LEFT, macroTemplates[MacroName.GLOBAL_LEFT_CLICK]);
+        const result = builder.setMacro(Button.LEFT, macroTemplates[MacroName.GLOBAL_LEFT_CLICK]);
         expect(result).toBe(builder);
     });
 
     it("should support new descriptive button names", () => {
         const builder = new MacrosBuilder();
-        builder.setMacro(Buttons.LEFT, macroTemplates[MacroName.GLOBAL_LEFT_CLICK]);
-        builder.setMacro(Buttons.FORWARD, macroTemplates[MacroName.GLOBAL_FORWARD]);
-        
-        expect(builder.buffer[3]).toBe(0x02); // Left Click
+        builder.setMacro(Button.LEFT, macroTemplates[MacroName.GLOBAL_LEFT_CLICK]);
+        builder.setMacro(Button.FORWARD, macroTemplates[MacroName.GLOBAL_FORWARD]);
+
+        expect(builder.buffer[3]).toBe(0x02); // Left-Click
         expect(builder.buffer[21]).toBe(0x06); // Forward
     });
 
     it("should support remapping DPI button", () => {
         const builder = new MacrosBuilder();
-        // Remap DPI button (index 18) to Middle Click
-        builder.setMacro(Buttons.DPI, macroTemplates[MacroName.GLOBAL_MIDDLE]);
-        
+        // Remap the DPI button (index 18) to Middle-Click
+        builder.setMacro(Button.DPI, macroTemplates[MacroName.GLOBAL_MIDDLE]);
+
         expect(builder.buffer[18]).toBe(0x04); // MIDDLE_CLICK
         expect(builder.buffer[19]).toBe(0x00);
         expect(builder.buffer[20]).toBe(0x00);
@@ -75,9 +74,9 @@ describe("MacrosBuilder", () => {
 
     it("should support remapping scroll wheel", () => {
         const builder = new MacrosBuilder();
-        builder.setMacro(Buttons.SCROLL_UP, macroTemplates[MacroName.MULTIMEDIA_VOLUME_PLUS] ?? [FirmwareAction.VOL_PLUS, 0, 0]);
-        builder.setMacro(Buttons.SCROLL_DOWN, macroTemplates[MacroName.MULTIMEDIA_VOLUME_MINUS] ?? [FirmwareAction.VOL_MINUS, 0, 0]);
-        
+        builder.setMacro(Button.SCROLL_UP, macroTemplates[MacroName.MULTIMEDIA_VOLUME_PLUS] ?? [FirmwareAction.VOL_PLUS, 0, 0]);
+        builder.setMacro(Button.SCROLL_DOWN, macroTemplates[MacroName.MULTIMEDIA_VOLUME_MINUS] ?? [FirmwareAction.VOL_MINUS, 0, 0]);
+
         expect(builder.buffer[51]).toBe(0x1b); // VOL_PLUS
         expect(builder.buffer[54]).toBe(0x1c); // VOL_MINUS
     });

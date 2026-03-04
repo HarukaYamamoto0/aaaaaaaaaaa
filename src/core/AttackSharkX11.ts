@@ -1,13 +1,13 @@
 import type {Device, InEndpoint, Interface} from "usb";
 import * as usb from "usb";
-import {PollingRateBuilder, PollingRate} from "../protocols/PollingRateBuilder.js";
+import {PollingRate, PollingRateBuilder} from "../protocols/PollingRateBuilder.js";
 import {UserPreferencesBuilder, type UserPreferencesBuilderOptions} from "../protocols/UserPreferencesBuilder.js";
 import {type MacroBuilderOptions, MacrosBuilder} from "../protocols/MacrosBuilder.js";
 import {InternalStateResetReportBuilder} from "../protocols/InternalStateResetReportBuilder.js";
 import {delay} from "../utils/delay.js";
 import {DpiBuilder} from "../protocols/DpiBuilder.js";
-import {CustomMacroBuilder, type CustomMacroBuilderOptions} from "../protocols/CustomMacroBuilder.js";
-import {ConnectionMode} from "../types.js";
+import {CustomMacroBuilder, type CustomMacroBuilderOptions, MacroMode} from "../protocols/CustomMacroBuilder.js";
+import {Button, ConnectionMode} from "../types.js";
 
 const VID = 0x1d57;
 const PID_WIRELESS = 0xfa60;
@@ -57,6 +57,7 @@ export class AttackSharkX11 {
             iface.claim();
         } catch (e: any) {
             if (process.platform === 'win32') {
+                // TODO: Once the driver is complete, remove this verification
                 throw new Error(`Could not claim interface: ${e.message}. On Windows, you might need to use Zadig to install WinUSB driver for Interface 2.`);
             }
             throw e;
@@ -78,6 +79,7 @@ export class AttackSharkX11 {
 
     /**
      * Check if it's in wireless mode.
+     * @deprecated
      */
     get isWireless(): boolean {
         return this.productId === PID_WIRELESS;
@@ -130,17 +132,24 @@ export class AttackSharkX11 {
      * @return {Promise<number | undefined>} A promise that resolves with the battery level as a number, or undefined if unavailable.
      *                                       Throws an error if the battery packet is invalid or if a communication error occurs.
      */
-    async getBatteryLevel(): Promise<number | undefined> {
+    async getBatteryLevel(): Promise<number> {
         const endpoint = this.interruptEndpoint as InEndpoint;
 
         return new Promise((resolve, reject) => {
             endpoint.transfer(64, (err, data) => {
                 if (err) return reject(err);
-                if (!data || data.length < 4) {
+                if (!data || data.length < 4 || data.length > 4) {
                     return reject(new Error("Invalid battery packet"));
                 }
 
-                const battery = data[4];
+                const battery = data[4]!;
+
+                if (battery < 0 || battery > 100) {
+                    return reject(
+                        new Error("Battery byte is outside the valid 0–100 range")
+                    );
+                }
+
                 resolve(battery);
             });
         });
@@ -178,7 +187,7 @@ export class AttackSharkX11 {
     }
 
     async setPollingRate(rate: PollingRate | PollingRateBuilder) {
-        const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setPollingRate(rate);
+        const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setRate(rate);
 
         return await this.commandTransfer(
             builder.build(this.connectionMode),
@@ -189,42 +198,43 @@ export class AttackSharkX11 {
         );
     }
 
-    async setCustomMacro(macro: CustomMacroBuilder) {
-        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = macro.build(this.connectionMode)
+    async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions) {
+        const builder = options instanceof CustomMacroBuilder ? options : new CustomMacroBuilder(options)
+        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = builder.build(this.connectionMode)
 
         await this.commandTransfer(
-            setMacroBuffer!,
+            setMacroBuffer,
             0x21,
             0x09,
             0x0308,
             2,
         )
-        await delay(500)
+        await delay(250)
 
         await this.commandTransfer(
-            secondPacket!,
-            macro.bmRequestType,
-            macro.bRequest,
-            macro.wValue,
-            macro.wIndex
+            secondPacket,
+            0x21,
+            0x09,
+            0x0309,
+            2
         )
         await delay(500)
 
         await this.commandTransfer(
-            thirdPacket!,
-            macro.bmRequestType,
-            macro.bRequest,
-            macro.wValue,
-            macro.wIndex
+            thirdPacket,
+            0x21,
+            0x09,
+            0x0309,
+            2
         )
         await delay(500)
 
         await this.commandTransfer(
-            fourthPacket!,
-            macro.bmRequestType,
-            macro.bRequest,
-            macro.wValue,
-            macro.wIndex
+            fourthPacket,
+            0x21,
+            0x09,
+            0x0309,
+            2
         )
     }
 
@@ -241,25 +251,8 @@ export class AttackSharkX11 {
         );
     }
 
-    async setUserPreferences(options: Partial<UserPreferenceOptions> | UserPreferencesBuilder = {}) {
-        const builder = options instanceof UserPreferencesBuilder ? options : (() => {
-            const opts: UserPreferenceOptions = {
-                ...UserPreferencesBuilder.DEFAULT_PREFS,
-                ...options,
-                rgb: {
-                    ...UserPreferencesBuilder.DEFAULT_PREFS.rgb,
-                    ...options.rgb
-                }
-            };
-
-            return new UserPreferencesBuilder()
-                .setLightMode(opts.lightMode)
-                .setLedSpeed(opts.ledSpeed)
-                .setRgb(opts.rgb)
-                .setSleep(opts.sleepTime)
-                .setDeepSleep(opts.deepSleepTime)
-                .setKeyResponse(opts.keyResponse);
-        })();
+    async setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions) {
+        const builder = options instanceof UserPreferencesBuilder ? options : new UserPreferencesBuilder(options)
 
         return await this.commandTransfer(
             builder.build(this.connectionMode),
@@ -273,16 +266,6 @@ export class AttackSharkX11 {
     async sendInternalStateResetReportBuilder() {
         const builder = new InternalStateResetReportBuilder()
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
-
-    async setInternalStateResetReport(builder: InternalStateResetReportBuilder = new InternalStateResetReportBuilder()) {
         return await this.commandTransfer(
             builder.build(this.connectionMode),
             builder.bmRequestType,
@@ -338,6 +321,19 @@ export class AttackSharkX11 {
         )
     }
 
+    async resetCustomMacro() {
+        const builder = new CustomMacroBuilder({
+            playOptions: {
+                mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
+                times: 1
+            },
+            targetButton: Button.BACKWARD,
+            macroEvents: [],
+        })
+
+        await this.setCustomMacro(builder)
+    }
+
     async resetUserPreferences() {
         const builder = new UserPreferencesBuilder().setKeyResponse(8);
 
@@ -352,7 +348,7 @@ export class AttackSharkX11 {
 
     async reset() {
         await this.sendInternalStateResetReportBuilder()
-        await delay(500)
+        await delay(500) // TODO: discover the minimum delay that doesn't crash the firmware.
         await this.resetDpi()
         await delay(500)
         await this.resetUserPreferences()
@@ -360,5 +356,7 @@ export class AttackSharkX11 {
         await this.resetPollingRate()
         await delay(500)
         await this.resetMacro()
+        await delay(500)
+        await this.resetCustomMacro()
     }
 }

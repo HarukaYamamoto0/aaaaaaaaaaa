@@ -31,22 +31,22 @@ export enum LightMode {
  */
 export interface UserPreferencesBuilderOptions {
     /** Light mode enum */
-    lightMode: LightMode
+    lightMode?: LightMode
 
     /** RGB color (0–255 each channel) */
-    rgb: RGB
+    rgb?: RGB
 
     /** LED speed (1–5) */
-    ledSpeed: LedSpeed
+    ledSpeed?: LedSpeed
 
     /** Sleep time in minutes (0.5–30, step 0.5) */
-    sleepTime: SleepTime
+    sleepTime?: SleepTime
 
     /** Deep sleep time in minutes (1–60) */
-    deepSleepTime: DeepSleepTime
+    deepSleepTime?: DeepSleepTime
 
     /** Key response in ms (4–50, step 2) */
-    keyResponse: KeyResponse
+    keyResponse?: KeyResponse
 }
 
 /**
@@ -144,7 +144,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
     public static readonly DEFAULT_OPTIONS: UserPreferencesBuilderOptions = {
         lightMode: LightMode.Off,
         rgb: {r: 0, g: 255, b: 0},
-        ledSpeed: 5,
+        ledSpeed: 3,
         sleepTime: 0.5,
         deepSleepTime: 10,
         keyResponse: 4
@@ -168,12 +168,12 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 
         const config = {...UserPreferencesBuilder.DEFAULT_OPTIONS, ...options};
 
-        this.setLightMode(config.lightMode)
-        this.setDeepSleep(config.deepSleepTime)
-        this.setLedSpeed(config.ledSpeed)
-        this.setRgb(config.rgb)
-        this.setKeyResponse(config.keyResponse)
-        this.setSleep(config.sleepTime)
+        if (config.lightMode) this.setLightMode(config.lightMode)
+        if (config.deepSleepTime) this.setDeepSleep(config.deepSleepTime)
+        if (config.ledSpeed) this.setLedSpeed(config.ledSpeed)
+        if (config.rgb) this.setRgb(config.rgb)
+        if (config.keyResponse) this.setKeyResponse(config.keyResponse)
+        if (config.sleepTime) this.setSleep(config.sleepTime)
     }
 
     /**

@@ -14,23 +14,19 @@ const OFFSET = {
     STAGES_START: 8,
 } as const;
 
-// noinspection JSUnusedGlobalSymbols
-export enum StageIndex {
-    FIRST = 1,
-    SECOND = 2,
-    THIRD = 3,
-    FOURTH = 4,
-    FIFTH = 5,
-    SIXTH = 6
-}
-
-type StageArrayIndex = 0 | 1 | 2 | 3 | 4 | 5;
+/**
+ * Represents a stage index that can have one of the preset integer values.
+ *
+ * This type is used to define a sequential stage in a process or workflow.
+ * It restricts the possible values to integers 1 through 6.
+ */
+export type StageIndex = 1 | 2 | 3 | 4 | 5 | 6
 
 export interface DpiBuilderOptions {
-    angleSnap: boolean
-    ripplerControl: boolean
-    dpiValues: [number, number, number, number, number, number]
-    activeStage: StageIndex
+    angleSnap?: boolean
+    ripplerControl?: boolean
+    dpiValues?: [number, number, number, number, number, number]
+    activeStage?: StageIndex
 }
 
 /**
@@ -49,7 +45,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
         angleSnap: false,
         ripplerControl: true,
         dpiValues: [800, 1600, 2400, 3200, 5000, 22000],
-        activeStage: StageIndex.SECOND,
+        activeStage: 2,
     };
 
     // noinspection FunctionTooLongJS
@@ -123,13 +119,12 @@ export class DpiBuilder implements BaseProtocolBuilder {
         this.buffer[54] = 0x00 // padding wireless mode
         this.buffer[55] = 0x00 // padding wireless mode
 
-
         const config = {...DpiBuilder.DEFAULT_OPTIONS, ...options};
 
-        this.setAngleSnap(config.angleSnap)
-            .setRipplerControl(config.ripplerControl)
-            .setStages(config.dpiValues)
-            .setCurrentStage(config.activeStage);
+        if (config.angleSnap) this.setAngleSnap(config.angleSnap)
+        if (config.ripplerControl) this.setRipplerControl(config.ripplerControl)
+        if (config.dpiValues) this.setStages(config.dpiValues)
+        if (config.activeStage) this.setCurrentStage(config.activeStage);
     }
 
     /**
@@ -174,7 +169,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
      * @return {this} The instance of the class for method chaining.
      */
     public setDpiValue(stage: StageIndex, dpi: number): this {
-        const index = (stage - 1) as StageArrayIndex;
+        const index = (stage - 1);
 
         this.stages[index] = dpi;
         this.buffer[OFFSET.STAGES_START + index] = this.encodeDpi(dpi);
@@ -193,8 +188,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
             throw new Error(`You need to pass the 6 DPI values; e.g.: [800, 1600, 2400, 3200, 5000, 22000]`)
 
         for (let i = 0; i < stages.length; i++) {
-            // StageIndex is 1-based, so FIRST = 1
-            this.setDpiValue(i + 1, stages[i]!)
+            this.setDpiValue((i + 1) as StageIndex, stages[i]!)
         }
         return this
     }
