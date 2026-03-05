@@ -237,6 +237,7 @@ class AttackSharkX11 {
 		});
 	}
 
+	// TODO: To improve listener behavior, such as adding and removing listeners in a better way.
 	onBatteryChange(listener: (battery: number) => void): () => void {
 		this.checkIsOpen();
 
