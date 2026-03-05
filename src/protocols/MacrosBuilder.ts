@@ -16,8 +16,6 @@ export enum KeyCode {
 	NONE = 0x00,
 	ONLY_USED_BY_EASY_AIM = 0x03, // used by easy-aim
 
-	// TODO: Check for missing keys such as ALT.
-
 	// Letters
 	A = 0x04,
 	B = 0x05,
