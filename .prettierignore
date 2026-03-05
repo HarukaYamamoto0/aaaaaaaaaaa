@@ -1,0 +1,20 @@
+# Ignore artifacts:
+coverage
+node_modules
+dist
+docs
+
+/tmp
+/out-tsc
+
+*.log
+*.pnp
+
+.vscode/*
+.DS_Store
+.idea
+parse.ts
+tests.ts
+scratch.txt
+.github
+*.yml

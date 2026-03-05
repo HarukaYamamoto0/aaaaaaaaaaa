@@ -1,384 +1,461 @@
-import type {Device, InEndpoint, Interface} from "usb";
-import * as usb from "usb";
-import {PollingRate, PollingRateBuilder} from "../protocols/PollingRateBuilder.js";
-import {UserPreferencesBuilder, type UserPreferencesBuilderOptions} from "../protocols/UserPreferencesBuilder.js";
-import {type MacroBuilderOptions, MacrosBuilder} from "../protocols/MacrosBuilder.js";
-import {InternalStateResetReportBuilder} from "../protocols/InternalStateResetReportBuilder.js";
-import {delay} from "../utils/delay.js";
-import {DpiBuilder} from "../protocols/DpiBuilder.js";
-import {CustomMacroBuilder, type CustomMacroBuilderOptions, MacroMode} from "../protocols/CustomMacroBuilder.js";
-import {Button, ConnectionMode} from "../types.js";
+// noinspection JSUnusedGlobalSymbols
+
+import type { Device, InEndpoint, Interface } from 'usb';
+import * as usb from 'usb';
+import { ControlTransferError, DeviceError, DriverError, InterfaceError, TimeoutError } from '../errors.js';
+import { CustomMacroBuilder, type CustomMacroBuilderOptions, MacroMode } from '../protocols/CustomMacroBuilder.js';
+import { DpiBuilder } from '../protocols/DpiBuilder.js';
+import { InternalStateResetReportBuilder } from '../protocols/InternalStateResetReportBuilder.js';
+import { type MacroBuilderOptions, MacrosBuilder } from '../protocols/MacrosBuilder.js';
+import { PollingRateBuilder, type Rate } from '../protocols/PollingRateBuilder.js';
+import { UserPreferencesBuilder, type UserPreferencesBuilderOptions } from '../protocols/UserPreferencesBuilder.js';
+import {
+	Button,
+	ConnectionMode,
+	type ControlTransferIn,
+	type ControlTransferOptions,
+	type ControlTransferOut,
+	type Logger,
+} from '../types.js';
+import { bufferStartsWith } from '../utils/bufferUtils.js';
+import { delay } from '../utils/delay.js';
+import { ConsoleLogger } from '../logger/index.js';
 
 const VID = 0x1d57;
-const PID_WIRELESS = 0xfa60;
-const PID_WIRED = 0xfa55;
+const DEVICE_INTERFACE = 0x02;
+const INTERRUPT_ENDPOINT = 0x83;
 
-const DEVICE_INTERFACE = 0x02
-const INTERRUPT_ENDPOINT = 0x83
+class AttackSharkX11 {
+	public readonly productId: number;
+	device: Device;
+	deviceInterface!: Interface;
+	interruptEndpoint!: InEndpoint;
+	private isOpen: boolean = false;
+	private lastBattery: number = -1;
+	private logger: Logger;
 
-export class AttackSharkX11 {
-    public readonly productId: number;
-    device: Device
-    deviceInterface: Interface
-    interruptEndpoint: InEndpoint
+	constructor(options: { connectionMode: ConnectionMode; logger?: Logger }) {
+		if (!options.connectionMode) {
+			throw new DriverError('The type of connection was not specified');
+		}
 
-    private lastBattery: number = -1
+		this.logger = options.logger ?? new ConsoleLogger();
 
-    constructor() {
-        const device = usb.getDeviceList().find(d =>
-            d.deviceDescriptor.idVendor === VID &&
-            (d.deviceDescriptor.idProduct === PID_WIRELESS || d.deviceDescriptor.idProduct === PID_WIRED)
-        );
+		const device = usb
+			.getDeviceList()
+			.find(
+				(d) => d.deviceDescriptor.idVendor === VID && d.deviceDescriptor.idProduct === options.connectionMode,
+			);
 
-        if (!device) {
-            throw new Error("Mouse Attack Shark X11 not found");
-        }
-        this.device = device;
-        this.productId = device.deviceDescriptor.idProduct;
-        this.open()
+		if (!device) {
+			throw new DeviceError(`Device with idProduct ${options.connectionMode} not found`);
+		}
 
-        const iface = this.device.interface(DEVICE_INTERFACE)
-        if (!iface) {
-            throw new Error("interfaces not found")
-        }
-        this.deviceInterface = iface
+		this.device = device;
+		this.productId = device.deviceDescriptor.idProduct;
+	}
 
-        if (process.platform !== 'win32') {
-            if (iface.isKernelDriverActive()) {
-                try {
-                    iface.detachKernelDriver();
-                } catch (e) {
-                    console.warn("Could not detach kernel driver:", e);
-                }
-            }
-        }
+	/**
+	 * Returns to the current connection mode.
+	 */
+	get connectionMode(): ConnectionMode {
+		return this.productId as ConnectionMode;
+	}
 
-        try {
-            iface.claim();
-        } catch (e: any) {
-            if (process.platform === 'win32') {
-                // TODO: Once the driver is complete, remove this verification
-                throw new Error(`Could not claim interface: ${e.message}. On Windows, you might need to use Zadig to install WinUSB driver for Interface 2.`);
-            }
-            throw e;
-        }
+	open(): Promise<unknown> {
+		return new Promise((resolve, reject) => {
+			try {
+				this.device.open();
+			} catch (e: unknown) {
+				reject(
+					new DeviceError(`An unexpected error occurred while trying to open device ${this.connectionMode}`, {
+						cause: e,
+					}),
+				);
+			}
 
-        const interruptEndpoint = iface.endpoints.find(e => e.address === INTERRUPT_ENDPOINT)
-        if (!interruptEndpoint) {
-            throw new Error("interruptEndpoint not found")
-        }
-        this.interruptEndpoint = interruptEndpoint as InEndpoint
-    }
+			const iface = this.device.interface(DEVICE_INTERFACE);
 
-    /**
-     * Returns to the current connection mode.
-     */
-    get connectionMode(): ConnectionMode {
-        return this.productId === PID_WIRELESS ? ConnectionMode.Adapter : ConnectionMode.Wired
-    }
+			if (!iface) {
+				reject(new InterfaceError(`interface ${DEVICE_INTERFACE} not found`, DEVICE_INTERFACE));
+			}
 
-    async commandTransfer(
-        data: Buffer,
-        bmRequestType: number,
-        bRequest: number,
-        wValue: number,
-        wIndex: number
-    ): Promise<number | Buffer<ArrayBufferLike> | undefined> {
-        return new Promise((resolve, reject) => {
-            this.device.controlTransfer(
-                bmRequestType,
-                bRequest,
-                wValue,
-                wIndex,
-                data,
-                (err, buffer) => {
-                    if (err) reject(err);
-                    else resolve(buffer);
-                }
-            );
-        });
-    }
+			this.deviceInterface = iface;
 
-    open() {
-        this.device.open()
-    }
+			// Once everything is complete, this Windows verification should be removed.
+			if (process.platform !== 'win32') {
+				if (iface.isKernelDriverActive()) {
+					try {
+						iface.detachKernelDriver();
+					} catch (e: unknown) {
+						return reject(new DriverError('Could not detach kernel driver: ', { cause: e }));
+					}
+				}
+			}
 
-    close() {
-        if (this.deviceInterface) {
-            try {
-                this.deviceInterface.release(true, (err) => {
-                    if (err) console.error("Error releasing interface:", err);
-                    this.device?.close();
-                });
-            } catch (e) {
-                this.device?.close();
-            }
-        } else {
-            this.device?.close();
-        }
-    }
+			try {
+				iface.claim();
+			} catch (e: unknown) {
+				this.logger.error('An unexpected error occurred', e);
 
-    async getBatteryLevel(timeoutMs = 2000): Promise<number> {
-        if (this.connectionMode === ConnectionMode.Wired) return -1;
+				// Once everything is complete, this Windows verification should be removed.
+				if (process.platform === 'win32') {
+					return reject(
+						new InterfaceError(
+							`Could not claim interface ${DEVICE_INTERFACE}. On Windows, you might need to use Zadig to install WinUSB driver for Interface ${DEVICE_INTERFACE}.`,
+							DEVICE_INTERFACE,
+						),
+					);
+				}
+				throw e;
+			}
 
-        const endpoint = this.interruptEndpoint as InEndpoint;
+			const interruptEndpoint = iface.endpoints.find((e) => e.address === INTERRUPT_ENDPOINT);
 
-        return new Promise((resolve, reject) => {
-            let finished = false;
+			if (!interruptEndpoint) {
+				return reject(
+					new InterfaceError(`interruptEndpoint ${INTERRUPT_ENDPOINT} not found`, INTERRUPT_ENDPOINT),
+				);
+			}
 
-            const cleanup = () => {
-                if (finished) return;
-                finished = true;
+			this.interruptEndpoint = interruptEndpoint as InEndpoint;
+			this.isOpen = true;
+			resolve(true);
+		});
+	}
 
-                clearTimeout(timeout);
-                endpoint.removeListener("data", handleData);
+	async close(): Promise<void> {
+		if (!this.isOpen) return;
 
-                try {
-                    endpoint.stopPoll();
-                } catch {
-                }
-            };
+		if (!this.deviceInterface) {
+			this.device?.close();
+			return;
+		}
 
-            const handleData = (data: Buffer) => {
-                if (finished) return;
-                if (!data || data.length < 5) return;
+		await new Promise<void>((resolve, reject) => {
+			this.deviceInterface.release(true, (err) => {
+				if (err) {
+					reject(new InterfaceError('Error releasing interface', this.deviceInterface.interfaceNumber));
+					return;
+				}
 
-                if (
-                    data[0] === 0x03 &&
-                    data[1] === 0x55 &&
-                    data[2] === 0x40 &&
-                    data[3] === 0x01 &&
-                    data[4] !== undefined
-                ) {
-                    const battery = data[4];
+				resolve();
+			});
+		});
 
-                    if (battery <= 100) {
-                        cleanup();
-                        resolve(battery);
-                    }
-                }
-            };
+		this.device?.close();
+		this.isOpen = false;
+	}
 
-            const timeout = setTimeout(() => {
-                cleanup();
-                reject(new Error("Timeout waiting for battery report"));
-            }, timeoutMs);
+	checkIsOpen(): void {
+		if (!this.isOpen) throw new DriverError('You have to open the device first');
+	}
 
-            endpoint.on("data", handleData);
-            endpoint.startPoll(1, 64);
-        });
-    }
+	controlTransfer(options: ControlTransferIn): Promise<Buffer>;
+	controlTransfer(options: ControlTransferOut): Promise<number>;
+	controlTransfer(options: ControlTransferOptions): Promise<number | Buffer> {
+		this.checkIsOpen();
 
-    /**
-     * Registers a listener for battery level changes and starts polling for updates.
-     *
-     * @param listener A callback function that receives the updated battery level as a number.
-     *                 The battery level is provided if it has changed since the last update.
-     *                 It is not updated in Wired mode because it is treated as charging the mouse battery.
-     * @return A function that can be called to stop polling for battery level changes and remove the listener.
-     */
-    onBatteryChange(listener: (battery: number) => void): () => void {
-        const endpoint = this.interruptEndpoint as InEndpoint;
+		return new Promise((resolve, reject) => {
+			this.device.controlTransfer(
+				options.bmRequestType,
+				options.bRequest,
+				options.wValue,
+				options.wIndex,
+				options.data,
+				(err, result) => {
+					if (err) {
+						reject(new ControlTransferError('Control transfer failed', { cause: err }));
+						return;
+					}
 
-        const handleData = (data: Buffer) => {
-            if (
-                data[0] === 0x03 &&
-                data[1] === 0x55 &&
-                data[2] === 0x40 &&
-                data[3] === 0x01 &&
-                data[4] !== undefined
-            ) {
+					if (result === undefined) {
+						reject(new ControlTransferError('Control transfer returned undefined'));
+						return;
+					}
 
-                const battery = data[4];
-                if (!battery) return;
+					resolve(result);
+				},
+			);
+		});
+	}
 
-                if (battery !== this.lastBattery) {
-                    this.lastBattery = battery;
-                    listener(battery);
-                }
-            }
-        }
+	getBatteryLevel(timeoutMs = 1000): Promise<number> {
+		this.checkIsOpen();
 
-        endpoint.on("data", handleData);
-        endpoint.startPoll(1, 64);
+		return new Promise((resolve, reject) => {
+			if (this.connectionMode === ConnectionMode.Wired) {
+				return resolve(-1); // -1 indicates that it was not possible to get the exact battery status value
+			}
 
-        return () => {
-            endpoint.stopPoll();
-            endpoint.removeListener("data", handleData);
-        };
-    }
+			const endpoint = this.interruptEndpoint as InEndpoint;
+			let finished = false;
 
-    async setPollingRate(rate: PollingRate | PollingRateBuilder) {
-        const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setRate(rate);
+			const cleanup = (): void => {
+				if (finished) return;
+				finished = true;
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+				clearTimeout(timeout);
+				endpoint.off('data', handleData);
 
-    async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions) {
-        const builder = options instanceof CustomMacroBuilder ? options : new CustomMacroBuilder(options)
-        const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = builder.build(this.connectionMode)
+				try {
+					endpoint.stopPoll();
+				} catch {
+					/* empty */
+				}
+			};
 
-        await this.commandTransfer(
-            setMacroBuffer,
-            0x21,
-            0x09,
-            0x0308,
-            2,
-        )
-        await delay(250)
+			const handleData = (data: Buffer): void => {
+				if (finished) return;
+				if (data.length < 5) return;
 
-        await this.commandTransfer(
-            secondPacket,
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        )
-        await delay(500)
+				if (bufferStartsWith(data, Buffer.from([0x03, 0x55, 0x40, 0x01]))) {
+					const battery = data[4];
 
-        await this.commandTransfer(
-            thirdPacket,
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        )
-        await delay(500)
+					if (battery === undefined) return;
 
-        await this.commandTransfer(
-            fourthPacket,
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        )
-    }
+					if (battery <= 100) {
+						cleanup();
+						return resolve(battery);
+					}
+				}
+			};
 
-    async setMacro(config: MacroBuilderOptions | MacrosBuilder) {
-        const builder = config instanceof MacrosBuilder ? config : new MacrosBuilder(config);
-        const buffer = builder.build(this.connectionMode);
+			const timeout = setTimeout(() => {
+				cleanup();
+				return reject(new TimeoutError('Timeout waiting for battery report'));
+			}, timeoutMs);
 
-        return this.commandTransfer(
-            buffer,
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+			endpoint.on('data', handleData);
 
-    async setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions) {
-        const builder = options instanceof UserPreferencesBuilder ? options : new UserPreferencesBuilder(options)
+			try {
+				endpoint.startPoll(1, 64);
+			} catch (err) {
+				cleanup();
+				return reject(err);
+			}
+		});
+	}
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+	onBatteryChange(listener: (battery: number) => void): () => void {
+		this.checkIsOpen();
 
-    async sendInternalStateResetReportBuilder() {
-        const builder = new InternalStateResetReportBuilder()
+		const endpoint = this.interruptEndpoint as InEndpoint;
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+		const handleData = (data: Buffer): void => {
+			if (!bufferStartsWith(data, Buffer.from([0x03, 0x55, 0x40, 0x01]))) {
+				return;
+			}
 
-    async resetPollingRate() {
-        const pollingRateProtocol = new PollingRateBuilder()
+			if (data.length < 5) return;
 
-        return await this.commandTransfer(
-            pollingRateProtocol.build(this.connectionMode),
-            pollingRateProtocol.bmRequestType,
-            pollingRateProtocol.bRequest,
-            pollingRateProtocol.wValue,
-            pollingRateProtocol.wIndex
-        );
-    }
+			const battery = data[4];
+			if (battery === undefined) return;
 
-    async setDpi(builder: DpiBuilder) {
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+			if (battery !== this.lastBattery) {
+				this.lastBattery = battery;
+				listener(battery);
+			}
+		};
 
-    async resetDpi() {
-        const builder = new DpiBuilder()
+		endpoint.on('data', handleData);
+		endpoint.startPoll(1, 64);
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+		return () => {
+			endpoint.removeListener('data', handleData);
 
-    async resetMacro() {
-        const macroProtocol = new MacrosBuilder()
+			try {
+				endpoint.stopPoll();
+			} catch {
+				/* empty */
+			}
+		};
+	}
 
-        return await this.commandTransfer(
-            macroProtocol.build(this.connectionMode),
-            macroProtocol.bmRequestType,
-            macroProtocol.bRequest,
-            macroProtocol.wValue,
-            macroProtocol.wIndex
-        )
-    }
+	setPollingRate(rate: Rate | PollingRateBuilder): Promise<number> {
+		this.checkIsOpen();
+		const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setRate(rate);
 
-    async resetCustomMacro() {
-        const builder = new CustomMacroBuilder({
-            playOptions: {
-                mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
-                times: 1
-            },
-            targetButton: Button.BACKWARD,
-            macroEvents: [],
-        })
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
 
-        await this.setCustomMacro(builder)
-    }
+	async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions): Promise<void> {
+		this.checkIsOpen();
+		const builder = options instanceof CustomMacroBuilder ? options : new CustomMacroBuilder(options);
+		const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = builder.build(this.connectionMode);
 
-    async resetUserPreferences() {
-        const builder = new UserPreferencesBuilder().setKeyResponse(8);
+		await this.controlTransfer({
+			data: setMacroBuffer,
+			bmRequestType: 0x21,
+			bRequest: 0x09,
+			wValue: 0x0308,
+			wIndex: 2,
+		});
+		await delay(250);
 
-        return await this.commandTransfer(
-            builder.build(this.connectionMode),
-            builder.bmRequestType,
-            builder.bRequest,
-            builder.wValue,
-            builder.wIndex
-        );
-    }
+		await this.controlTransfer({
+			data: secondPacket,
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+		await delay(500);
 
-    async reset() {
-        await this.sendInternalStateResetReportBuilder()
-        await delay(250)
-        await this.resetDpi()
-        await delay(250)
-        await this.resetUserPreferences()
-        await delay(250)
-        await this.resetPollingRate()
-        await delay(250)
-        await this.resetMacro()
-        await delay(250)
-        await this.resetCustomMacro()
-    }
+		await this.controlTransfer({
+			data: thirdPacket,
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+		await delay(500);
+
+		await this.controlTransfer({
+			data: fourthPacket,
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	setMacro(config: MacroBuilderOptions | MacrosBuilder): Promise<number> {
+		this.checkIsOpen();
+		const builder = config instanceof MacrosBuilder ? config : new MacrosBuilder(config);
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions): Promise<number> {
+		this.checkIsOpen();
+		const builder = options instanceof UserPreferencesBuilder ? options : new UserPreferencesBuilder(options);
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	sendInternalStateResetReportBuilder(): Promise<number> {
+		this.checkIsOpen();
+		const builder = new InternalStateResetReportBuilder();
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	resetPollingRate(): Promise<number> {
+		this.checkIsOpen();
+		const builder = new PollingRateBuilder();
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	setDpi(builder: DpiBuilder): Promise<number> {
+		this.checkIsOpen();
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	resetDpi(): Promise<number> {
+		this.checkIsOpen();
+		const builder = new DpiBuilder();
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	resetMacro(): Promise<number> {
+		this.checkIsOpen();
+		const builder = new MacrosBuilder();
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	async resetCustomMacro(): Promise<void> {
+		this.checkIsOpen();
+		const builder = new CustomMacroBuilder({
+			playOptions: {
+				mode: MacroMode.THE_NUMBER_OF_TIME_TO_PLAY,
+				times: 1,
+			},
+			targetButton: Button.BACKWARD,
+			macroEvents: [],
+		});
+
+		await this.setCustomMacro(builder);
+	}
+
+	resetUserPreferences(): Promise<number> {
+		this.checkIsOpen();
+		const builder = new UserPreferencesBuilder().setKeyResponse(8);
+
+		return this.controlTransfer({
+			data: builder.build(this.connectionMode),
+			bmRequestType: builder.bmRequestType,
+			bRequest: builder.bRequest,
+			wValue: builder.wValue,
+			wIndex: builder.wIndex,
+		});
+	}
+
+	async reset(): Promise<void> {
+		this.checkIsOpen();
+		await this.sendInternalStateResetReportBuilder();
+		await delay(250);
+		await this.resetDpi();
+		await delay(250);
+		await this.resetUserPreferences();
+		await delay(250);
+		await this.resetPollingRate();
+		await delay(250);
+		await this.resetMacro();
+		await delay(250);
+		await this.resetCustomMacro();
+	}
 }
+
+export default AttackSharkX11;
