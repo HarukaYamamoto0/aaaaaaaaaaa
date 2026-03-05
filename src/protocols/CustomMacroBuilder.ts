@@ -1,5 +1,5 @@
-import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
-import { Button, type ConnectionMode } from '../types.js';
+import type {BaseProtocolBuilder} from '../core/BaseProtocolBuilder.js';
+import {Button, type ConnectionMode} from '../types.js';
 import {
 	type KeyCode,
 	type MacroBuilderOptions,
@@ -120,7 +120,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		this.fourthPacket[10] = 0x00; // Big Endian Checksum
 		this.fourthPacket[11] = 0x00; // Big Endian Checksum
 
-		const config = { ...CustomMacroBuilder.DEFAULT_OPTIONS, ...options };
+		const config = {...CustomMacroBuilder.DEFAULT_OPTIONS, ...options};
 
 		this.defineMacroButton = CustomMacroBuilder.DEFAULT_OPTIONS.macrosBuilder as MacrosBuilder;
 		if (config.macrosBuilder !== undefined)
@@ -133,8 +133,8 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		if (config.macroEvents && config.macroEvents.length > 0) this.macroEvents.push(...config.macroEvents);
 	}
 
-	addEvent(key: KeyCode | MouseMacroEvent | number, delayMs: number = 10, isRelease: boolean = false) {
-		const { eventDelay, extraDelay } = this.handleDelay(delayMs);
+	addEvent(key: KeyCode | MouseMacroEvent | number, delayMs: number = 10, isRelease: boolean = false): this {
+		const {eventDelay, extraDelay} = this.handleDelay(delayMs);
 		this.pushEventBytes(isRelease ? 0x80 | eventDelay : eventDelay, key);
 		if (extraDelay) {
 			this.pushEventBytes(extraDelay, 0x03);
@@ -142,12 +142,12 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		return this;
 	}
 
-	pushEventBytes(byte1: number, byte2: number) {
+	pushEventBytes(byte1: number, byte2: number): this {
 		this.macroEvents.push(byte1, byte2);
 		return this;
 	}
 
-	setPlayOptions(mode: MacroMode = MacroMode.THE_NUMBER_OF_TIME_TO_PLAY, times?: number) {
+	setPlayOptions(mode: MacroMode = MacroMode.THE_NUMBER_OF_TIME_TO_PLAY, times?: number): this {
 		this.secondPacket[4] = mode;
 
 		if (!times) {
@@ -164,7 +164,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		return this;
 	}
 
-	setTargetButton(button: Button, macrosBuilder?: MacrosBuilder | MacroBuilderOptions) {
+	setTargetButton(button: Button, macrosBuilder?: MacrosBuilder | MacroBuilderOptions): this {
 		if (macrosBuilder !== undefined) {
 			this.defineMacroButton =
 				macrosBuilder instanceof MacrosBuilder ? macrosBuilder : new MacrosBuilder(macrosBuilder);
@@ -259,14 +259,14 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		eventDelay: number;
 		extraDelay?: number;
 	} {
-		const computeByte = (ms: number) => 2 * Math.floor((ms + 5) / 20) + 1;
+		const computeByte = (ms: number): number => 2 * Math.floor((ms + 5) / 20) + 1;
 
 		if (delayMs <= 1070) {
-			return { eventDelay: computeByte(delayMs) };
+			return {eventDelay: computeByte(delayMs)};
 		} else {
 			const extraUnits = Math.floor(delayMs / 200);
 			const rem = delayMs % 200;
-			return { eventDelay: computeByte(rem), extraDelay: extraUnits };
+			return {eventDelay: computeByte(rem), extraDelay: extraUnits};
 		}
 	}
 }

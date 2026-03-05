@@ -2,9 +2,7 @@
 
 import type { Device, InEndpoint, Interface } from 'usb';
 import * as usb from 'usb';
-import { ControlTransferError, DeviceError, DriverError, InterfaceError } from '../errors.js';
-import { logger as log } from '../logger/index.js';
-import type { Logger } from '../logger/types.js';
+import { ControlTransferError, DeviceError, DriverError, InterfaceError, TimeoutError } from '../errors.js';
 import { CustomMacroBuilder, type CustomMacroBuilderOptions, MacroMode } from '../protocols/CustomMacroBuilder.js';
 import { DpiBuilder } from '../protocols/DpiBuilder.js';
 import { InternalStateResetReportBuilder } from '../protocols/InternalStateResetReportBuilder.js';
@@ -17,22 +15,24 @@ import {
 	type ControlTransferIn,
 	type ControlTransferOptions,
 	type ControlTransferOut,
+	type Logger,
 } from '../types.js';
 import { bufferStartsWith } from '../utils/bufferUtils.js';
 import { delay } from '../utils/delay.js';
+import { logger as log } from '../logger/index.js';
 
 const VID = 0x1d57;
 const DEVICE_INTERFACE = 0x02;
 const INTERRUPT_ENDPOINT = 0x83;
 
-export class AttackSharkX11 {
+class AttackSharkX11 {
 	public readonly productId: number;
 	device: Device;
 	deviceInterface!: Interface;
 	interruptEndpoint!: InEndpoint;
 	private isOpen: boolean = false;
-	private logger: Logger;
 	private lastBattery: number = -1;
+	private logger: Logger;
 
 	constructor(connectionMode: ConnectionMode, logger: Logger = log) {
 		if (!connectionMode) {
@@ -60,7 +60,7 @@ export class AttackSharkX11 {
 		return this.productId as ConnectionMode;
 	}
 
-	async open() {
+	open(): Promise<unknown> {
 		return new Promise((resolve, reject) => {
 			try {
 				this.device.open();
@@ -143,13 +143,13 @@ export class AttackSharkX11 {
 		this.isOpen = false;
 	}
 
-	checkIsOpen() {
+	checkIsOpen(): void {
 		if (!this.isOpen) throw new DriverError('You have to open the device first');
 	}
 
-	async controlTransfer(options: ControlTransferIn): Promise<Buffer>;
-	async controlTransfer(options: ControlTransferOut): Promise<number>;
-	async controlTransfer(options: ControlTransferOptions): Promise<number | Buffer> {
+	controlTransfer(options: ControlTransferIn): Promise<Buffer>;
+	controlTransfer(options: ControlTransferOut): Promise<number>;
+	controlTransfer(options: ControlTransferOptions): Promise<number | Buffer> {
 		this.checkIsOpen();
 
 		return new Promise((resolve, reject) => {
@@ -176,18 +176,18 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async getBatteryLevel(timeoutMs = 500): Promise<number> {
+	getBatteryLevel(timeoutMs = 1000): Promise<number> {
 		this.checkIsOpen();
-		if (this.connectionMode === ConnectionMode.Wired) {
-			return -1; // -1 indicates that it was not possible to get the exact battery status value
-		}
-
-		const endpoint = this.interruptEndpoint as InEndpoint;
 
 		return new Promise((resolve, reject) => {
+			if (this.connectionMode === ConnectionMode.Wired) {
+				resolve(-1); // -1 indicates that it was not possible to get the exact battery status value
+			}
+
+			const endpoint = this.interruptEndpoint as InEndpoint;
 			let finished = false;
 
-			const cleanup = () => {
+			const cleanup = (): void => {
 				if (finished) return;
 				finished = true;
 
@@ -196,10 +196,12 @@ export class AttackSharkX11 {
 
 				try {
 					endpoint.stopPoll();
-				} catch {}
+				} catch {
+					/* empty */
+				}
 			};
 
-			const handleData = (data: Buffer) => {
+			const handleData = (data: Buffer): void => {
 				if (finished) return;
 				if (data.length < 5) return;
 
@@ -217,7 +219,7 @@ export class AttackSharkX11 {
 
 			const timeout = setTimeout(() => {
 				cleanup();
-				reject(new Error('Timeout waiting for battery report'));
+				reject(new TimeoutError('Timeout waiting for battery report'));
 			}, timeoutMs);
 
 			endpoint.on('data', handleData);
@@ -236,7 +238,7 @@ export class AttackSharkX11 {
 
 		const endpoint = this.interruptEndpoint as InEndpoint;
 
-		const handleData = (data: Buffer) => {
+		const handleData = (data: Buffer): void => {
 			if (!bufferStartsWith(data, Buffer.from([0x03, 0x55, 0x40, 0x01]))) {
 				return;
 			}
@@ -260,15 +262,17 @@ export class AttackSharkX11 {
 
 			try {
 				endpoint.stopPoll();
-			} catch {}
+			} catch {
+				/* empty */
+			}
 		};
 	}
 
-	async setPollingRate(rate: Rate | PollingRateBuilder) {
+	setPollingRate(rate: Rate | PollingRateBuilder): Promise<number> {
 		this.checkIsOpen();
 		const builder = rate instanceof PollingRateBuilder ? rate : new PollingRateBuilder().setRate(rate);
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -277,7 +281,7 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions) {
+	async setCustomMacro(options: CustomMacroBuilder | CustomMacroBuilderOptions): Promise<void> {
 		this.checkIsOpen();
 		const builder = options instanceof CustomMacroBuilder ? options : new CustomMacroBuilder(options);
 		const [setMacroBuffer, secondPacket, thirdPacket, fourthPacket] = builder.build(this.connectionMode);
@@ -318,11 +322,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async setMacro(config: MacroBuilderOptions | MacrosBuilder) {
+	setMacro(config: MacroBuilderOptions | MacrosBuilder): Promise<number> {
 		this.checkIsOpen();
 		const builder = config instanceof MacrosBuilder ? config : new MacrosBuilder(config);
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -331,11 +335,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions) {
+	setUserPreferences(options: UserPreferencesBuilder | UserPreferencesBuilderOptions): Promise<number> {
 		this.checkIsOpen();
 		const builder = options instanceof UserPreferencesBuilder ? options : new UserPreferencesBuilder(options);
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -344,11 +348,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async sendInternalStateResetReportBuilder() {
+	sendInternalStateResetReportBuilder(): Promise<number> {
 		this.checkIsOpen();
 		const builder = new InternalStateResetReportBuilder();
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -357,11 +361,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async resetPollingRate() {
+	resetPollingRate(): Promise<number> {
 		this.checkIsOpen();
 		const builder = new PollingRateBuilder();
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -370,9 +374,9 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async setDpi(builder: DpiBuilder) {
+	setDpi(builder: DpiBuilder): Promise<number> {
 		this.checkIsOpen();
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -381,11 +385,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async resetDpi() {
+	resetDpi(): Promise<number> {
 		this.checkIsOpen();
 		const builder = new DpiBuilder();
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -394,11 +398,11 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async resetMacro() {
+	resetMacro(): Promise<number> {
 		this.checkIsOpen();
 		const builder = new MacrosBuilder();
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -407,7 +411,7 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async resetCustomMacro() {
+	async resetCustomMacro(): Promise<void> {
 		this.checkIsOpen();
 		const builder = new CustomMacroBuilder({
 			playOptions: {
@@ -421,11 +425,11 @@ export class AttackSharkX11 {
 		await this.setCustomMacro(builder);
 	}
 
-	async resetUserPreferences() {
+	resetUserPreferences(): Promise<number> {
 		this.checkIsOpen();
 		const builder = new UserPreferencesBuilder().setKeyResponse(8);
 
-		return await this.controlTransfer({
+		return this.controlTransfer({
 			data: builder.build(this.connectionMode),
 			bmRequestType: builder.bmRequestType,
 			bRequest: builder.bRequest,
@@ -434,7 +438,7 @@ export class AttackSharkX11 {
 		});
 	}
 
-	async reset() {
+	async reset(): Promise<void> {
 		this.checkIsOpen();
 		await this.sendInternalStateResetReportBuilder();
 		await delay(250);
@@ -449,3 +453,5 @@ export class AttackSharkX11 {
 		await this.resetCustomMacro();
 	}
 }
+
+export default AttackSharkX11;

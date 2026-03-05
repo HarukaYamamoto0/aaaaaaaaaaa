@@ -21,7 +21,7 @@ describe('CustomMacroBuilder Delays', () => {
 		for (const { ms, expected } of delays) {
 			const customMacro = new CustomMacroBuilder().addEvent(KeyCode.A, ms);
 			const [, secondPacket] = customMacro.build(ConnectionMode.Adapter);
-			expect(secondPacket![30]).toBe(expected);
+			expect(secondPacket[30]).toBe(expected);
 		}
 	});
 
@@ -32,10 +32,10 @@ describe('CustomMacroBuilder Delays', () => {
 
 		// Event 1: [01, 04]
 		// Event 2: [19, 03]
-		expect(secondPacket![30]).toBe(0x01);
-		expect(secondPacket![31]).toBe(KeyCode.A);
-		expect(secondPacket![32]).toBe(0x19);
-		expect(secondPacket![33]).toBe(0x03);
+		expect(secondPacket[30]).toBe(0x01);
+		expect(secondPacket[31]).toBe(KeyCode.A);
+		expect(secondPacket[32]).toBe(0x19);
+		expect(secondPacket[33]).toBe(0x03);
 	});
 
 	test('Mouse events should use the same formula as keyboard', () => {
@@ -46,10 +46,10 @@ describe('CustomMacroBuilder Delays', () => {
 		const [, secondPacket] = customMacro.build(ConnectionMode.Adapter);
 
 		// 20ms -> 3
-		expect(secondPacket![30]).toBe(0x03);
-		expect(secondPacket![31]).toBe(MouseMacroEvent.LEFT_CLICK);
-		expect(secondPacket![32]).toBe(0x83);
-		expect(secondPacket![33]).toBe(MouseMacroEvent.LEFT_CLICK);
+		expect(secondPacket[30]).toBe(0x03);
+		expect(secondPacket[31]).toBe(MouseMacroEvent.LEFT_CLICK);
+		expect(secondPacket[32]).toBe(0x83);
+		expect(secondPacket[33]).toBe(MouseMacroEvent.LEFT_CLICK);
 	});
 });
 

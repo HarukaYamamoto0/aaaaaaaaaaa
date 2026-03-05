@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { ConnectionMode, LightMode, UserPreferencesBuilder } from '../src/index.js';
+import { DriverError } from '../src/errors.js';
 
 describe('UserPreferencesBuilder', () => {
 	/**
@@ -142,7 +143,7 @@ describe('UserPreferencesBuilder', () => {
 			const builder = new UserPreferencesBuilder();
 			for (const mode of modes) {
 				builder.setLightMode(mode);
-				expect(builder.buffer[3]!).toBe(mode);
+				expect(builder.buffer[3]).toBe(mode);
 			}
 		});
 
@@ -151,66 +152,73 @@ describe('UserPreferencesBuilder', () => {
 
 			// Min: 1 min -> Bucket 0, Value 0x18
 			builder.setDeepSleep(1);
-			expect(builder.buffer[4]! >> 4).toBe(0);
-			expect(builder.buffer[5]!).toBe(0x18);
+			if (!builder.buffer[4]) {
+				throw new DriverError('Byte 4 was not found');
+			}
+			expect(builder.buffer[4] >> 4).toBe(0);
+			expect(builder.buffer[5]).toBe(0x18);
 
 			// 16 min -> Bucket 0
 			builder.setDeepSleep(16);
-			expect(builder.buffer[4]! >> 4).toBe(0);
+			expect(builder.buffer[4] >> 4).toBe(0);
 
 			// 17 min -> Bucket 1
 			builder.setDeepSleep(17);
-			expect(builder.buffer[4]! >> 4).toBe(1);
+			expect(builder.buffer[4] >> 4).toBe(1);
 
 			// Max: 60 min -> Bucket 3
 			builder.setDeepSleep(60);
-			expect(builder.buffer[4]! >> 4).toBe(3);
-			expect(builder.buffer[5]!).toBe((0x08 + 60 * 16) & 0xff);
+			expect(builder.buffer[4] >> 4).toBe(3);
+			expect(builder.buffer[5]).toBe((0x08 + 60 * 16) & 0xff);
 
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setDeepSleep(0)).toThrow();
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setDeepSleep(61)).toThrow();
 		});
 
 		it('should handle LED speed boundaries', () => {
 			const builder = new UserPreferencesBuilder();
+			if (!builder.buffer[4]) {
+				throw new DriverError('Byte 4 was not found');
+			}
 			builder.setLedSpeed(1); // Slowest -> 5
-			expect(builder.buffer[4]! & 0x0f).toBe(5);
+			expect(builder.buffer[4] & 0x0f).toBe(5);
 			builder.setLedSpeed(5); // Fastest -> 1
-			expect(builder.buffer[4]! & 0x0f).toBe(1);
+			expect(builder.buffer[4] & 0x0f).toBe(1);
 
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setLedSpeed(0)).toThrow();
-			// @ts-ignore
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			expect(() => builder.setLedSpeed(6)).toThrow();
 		});
 
 		it('should handle sleep timer boundaries', () => {
 			const builder = new UserPreferencesBuilder();
 			builder.setSleep(0.5);
-			expect(builder.buffer[9]!).toBe(1);
+			expect(builder.buffer[9]).toBe(1);
 			builder.setSleep(30);
-			expect(builder.buffer[9]!).toBe(60);
+			expect(builder.buffer[9]).toBe(60);
 
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setSleep(0.4)).toThrow();
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setSleep(30.5)).toThrow();
 		});
 
 		it('should handle key response boundaries and step', () => {
 			const builder = new UserPreferencesBuilder();
 			builder.setKeyResponse(4);
-			expect(builder.buffer[10]!).toBe(2);
+			expect(builder.buffer[10]).toBe(2);
 			builder.setKeyResponse(50);
-			expect(builder.buffer[10]!).toBe(25);
+			expect(builder.buffer[10]).toBe(25);
 
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setKeyResponse(2)).toThrow();
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setKeyResponse(52)).toThrow();
-			// @ts-ignore
+			// @ts-expect-error test
 			expect(() => builder.setKeyResponse(5)).toThrow(); // Odd number
 		});
 	});
@@ -220,26 +228,26 @@ describe('UserPreferencesBuilder', () => {
 			const builder = new UserPreferencesBuilder().setLightMode(LightMode.Static);
 
 			builder.setRgb({ r: 99, g: 99, b: 99 });
-			expect(builder.buffer[11]!).toBe(0);
+			expect(builder.buffer[11]).toBe(0);
 
 			builder.setRgb({ r: 100, g: 99, b: 99 });
-			expect(builder.buffer[11]!).toBe(1);
+			expect(builder.buffer[11]).toBe(1);
 
 			builder.setRgb({ r: 100, g: 100, b: 99 });
-			expect(builder.buffer[11]!).toBe(2);
+			expect(builder.buffer[11]).toBe(2);
 
 			builder.setRgb({ r: 100, g: 100, b: 100 });
-			expect(builder.buffer[11]!).toBe(3);
+			expect(builder.buffer[11]).toBe(3);
 		});
 
 		it('should increment count for Breathing DPI mode', () => {
 			const builder = new UserPreferencesBuilder().setLightMode(LightMode.BreathingDpi);
 
 			builder.setRgb({ r: 0, g: 0, b: 0 });
-			expect(builder.buffer[11]!).toBe(1);
+			expect(builder.buffer[11]).toBe(1);
 
 			builder.setRgb({ r: 100, g: 100, b: 100 });
-			expect(builder.buffer[11]!).toBe(4);
+			expect(builder.buffer[11]).toBe(4);
 		});
 	});
 
@@ -257,13 +265,13 @@ describe('UserPreferencesBuilder', () => {
 
 			// Change only RGB
 			builder.setRgb({ r: 50, g: 50, b: 50 });
-			expect(builder.buffer[3]!).toBe(LightMode.Neon); // mode unchanged
-			expect(builder.buffer[5]!).toBe(originalBuffer[5]!); // deep sleep unchanged
-			expect(builder.buffer[9]!).toBe(originalBuffer[9]!); // sleep unchanged
-			expect(builder.buffer[10]!).toBe(originalBuffer[10]!); // debounce unchanged
+			expect(builder.buffer[3]).toBe(LightMode.Neon); // mode unchanged
+			expect(builder.buffer[5]).toBe(originalBuffer[5]); // deep sleep unchanged
+			expect(builder.buffer[9]).toBe(originalBuffer[9]); // sleep unchanged
+			expect(builder.buffer[10]).toBe(originalBuffer[10]); // debounce unchanged
 
 			// Checksum should be different (but only after build/calculate)
-			expect(builder.calculateChecksum()).not.toBe(originalBuffer[12]!);
+			expect(builder.calculateChecksum()).not.toBe(originalBuffer[12]);
 		});
 
 		it('should calculate correct checksum after multiple changes', () => {

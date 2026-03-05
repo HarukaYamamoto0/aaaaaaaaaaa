@@ -5,8 +5,8 @@
 This project is an attempt to reverse-engineer the **Attack Shark X11** mouse.
 
 Unfortunately, the official configuration software for this mouse is **only available on Windows**.
-Because of that, and purely as a learning exercise in my free time, I’m analyzing the device’s USB protocol using *
-*Wireshark + USBCAP**, with the goal of eventually building a usable driver / configuration tool for other platforms.
+Because of that, and purely as a learning exercise in my free time, I’m analyzing the device’s USB protocol using \*
+\*Wireshark + USBCAP\*\*, with the goal of eventually building a usable driver / configuration tool for other platforms.
 
 Please note that this driver currently only supports wired and 2.4 GHz wireless modes, as my computer lacks a Bluetooth
 adapter for testing.  
@@ -24,18 +24,18 @@ The official configuration panel provides the following features:
 ❌ = Not yet implemented<br>
 
 | Option                | Description                                          | Implementation |
-|-----------------------|------------------------------------------------------|----------------|
-| Button settings       | Change button behavior and mappings                  | ✅              |
-| Macro Manager         | Configure and manage custom macros.                  | ✅              |
-| Power                 | Displays mouse battery status                        | ✅              |
-| Reset profile         | Resets the current profile                           | ✅              |
-| DPI settings          | Configure DPI stages and values per stage            | ✅              |
-| Light settings        | Configure the mouse LED                              | ✅              |
-| Polling rate settings | Set polling rate (4 predefined options)              | ✅              |
-| Power manager         | Two sliders to configure sleep and deep sleep timing | ✅              |
-| Key response time     | Slider from 4ms (step 2ms) up to 50ms                | ✅              |
-| Ripple control        | On / Off                                             | ✅              |
-| Angle snap            | On / Off                                             | ✅              |
+| --------------------- | ---------------------------------------------------- | -------------- |
+| Button settings       | Change button behavior and mappings                  | ✅             |
+| Macro Manager         | Configure and manage custom macros.                  | ✅             |
+| Power                 | Displays mouse battery status                        | ✅             |
+| Reset profile         | Resets the current profile                           | ✅             |
+| DPI settings          | Configure DPI stages and values per stage            | ✅             |
+| Light settings        | Configure the mouse LED                              | ✅             |
+| Polling rate settings | Set polling rate (4 predefined options)              | ✅             |
+| Power manager         | Two sliders to configure sleep and deep sleep timing | ✅             |
+| Key response time     | Slider from 4ms (step 2ms) up to 50ms                | ✅             |
+| Ripple control        | On / Off                                             | ✅             |
+| Angle snap            | On / Off                                             | ✅             |
 
 Almost everything is already implemented, but some bug fixes are still required, along with additional testing and a few
 extra features.

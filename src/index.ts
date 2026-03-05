@@ -1,4 +1,5 @@
 export * from './core/AttackSharkX11.js';
+export { default as AttackSharkX11 } from './core/AttackSharkX11.js';
 export * from './protocols/CustomMacroBuilder.js';
 export * from './protocols/DpiBuilder.js';
 export * from './protocols/MacrosBuilder.js';

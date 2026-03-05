@@ -1,4 +1,4 @@
-import { ConnectionMode } from '../types.js';
+import type { ConnectionMode } from '../types.js';
 
 export interface BaseProtocolBuilder {
 	/**
@@ -68,7 +68,6 @@ export interface BaseProtocolBuilder {
 	/**
 	 * Returns the final buffer to be sent to the device
 	 */
-	// @ts-ignore
 	build(mode: ConnectionMode): Buffer | Buffer[];
 
 	/**

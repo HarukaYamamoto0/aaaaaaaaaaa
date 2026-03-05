@@ -3,20 +3,22 @@ import {
 	Button,
 	ConnectionMode,
 	CustomMacroBuilder,
-	DpiBuilder,
 	delay,
+	DpiBuilder,
 	KeyCode,
 	LightMode,
 	MacroMode,
 	MacroName,
 	MacrosBuilder,
 	macroTemplates,
-	PollingRateBuilder,
 	Rate,
 } from './src/index.js';
-import { logger } from './src/logger/index.js';
+import { ConsoleLogger, logger } from './src/logger/index.js';
 
-const driver = new AttackSharkX11(ConnectionMode.Adapter);
+const driver = new AttackSharkX11({
+	connectionMode: ConnectionMode.Adapter,
+	logger: new ConsoleLogger('debug'),
+});
 const delayMS = 250;
 
 try {
@@ -36,7 +38,7 @@ try {
 	await driver.setDpi(dpiBuilder);
 	await delay(delayMS);
 
-	const pollingRateBuilder = new PollingRateBuilder().setRate(Rate.eSports);
+	const pollingRateBuilder = driver.createPollingRateBuilder().setRate(Rate.eSports);
 
 	await driver.setPollingRate(pollingRateBuilder);
 	await delay(delayMS);
@@ -57,19 +59,11 @@ try {
 	);
 	await delay(delayMS);
 
-	const key = 0xff;
-
-	await driver.setCustomMacro({
-		macroEvents: [0x01, key, 0x81, key],
-		targetButton: Button.BACKWARD,
-		macrosBuilder: macroBuilder,
-	});
-
-	const batteryStatus = await driver.getBatteryLevel();
-	logger.info(`${batteryStatus}%`);
+	const batteryStatus = await driver.getBatteryLevel(1000);
+	logger.info(`battey status: ${batteryStatus}%`);
 
 	driver.onBatteryChange((level: number) => {
-		logger.info(`${level}%`);
+		logger.info(`battery status in listening mode: ${level}%`);
 	});
 
 	await delay(10000);

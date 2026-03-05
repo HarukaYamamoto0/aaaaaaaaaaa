@@ -89,11 +89,13 @@ describe('MacrosBuilder', () => {
 
 	it('should throw error for invalid button identifier', () => {
 		const builder = new MacrosBuilder();
-		// @ts-ignore
+		// @ts-expect-error test
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		expect(() => builder.setMacro(99 as any, [0, 0, 0])).toThrow('Invalid button identifier: 99');
 	});
 
 	it('should initialize with custom options in constructor', () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const customMacro: any = [0x11, 0x01, 0x04]; // Keyboard, Ctrl, A
 		const builder = new MacrosBuilder({
 			left: customMacro,
