@@ -88,7 +88,7 @@ class AttackSharkX11 {
 					try {
 						iface.detachKernelDriver();
 					} catch (e: unknown) {
-						reject(new DriverError('Could not detach kernel driver: ', { cause: e }));
+						return reject(new DriverError('Could not detach kernel driver: ', { cause: e }));
 					}
 				}
 			}
@@ -100,7 +100,7 @@ class AttackSharkX11 {
 
 				// Once everything is complete, this Windows verification should be removed.
 				if (process.platform === 'win32') {
-					reject(
+					return reject(
 						new InterfaceError(
 							`Could not claim interface ${DEVICE_INTERFACE}. On Windows, you might need to use Zadig to install WinUSB driver for Interface ${DEVICE_INTERFACE}.`,
 							DEVICE_INTERFACE,
@@ -113,7 +113,9 @@ class AttackSharkX11 {
 			const interruptEndpoint = iface.endpoints.find((e) => e.address === INTERRUPT_ENDPOINT);
 
 			if (!interruptEndpoint) {
-				reject(new InterfaceError(`interruptEndpoint ${INTERRUPT_ENDPOINT} not found`, INTERRUPT_ENDPOINT));
+				return reject(
+					new InterfaceError(`interruptEndpoint ${INTERRUPT_ENDPOINT} not found`, INTERRUPT_ENDPOINT),
+				);
 			}
 
 			this.interruptEndpoint = interruptEndpoint as InEndpoint;
@@ -183,7 +185,7 @@ class AttackSharkX11 {
 
 		return new Promise((resolve, reject) => {
 			if (this.connectionMode === ConnectionMode.Wired) {
-				resolve(-1); // -1 indicates that it was not possible to get the exact battery status value
+				return resolve(-1); // -1 indicates that it was not possible to get the exact battery status value
 			}
 
 			const endpoint = this.interruptEndpoint as InEndpoint;
@@ -214,14 +216,14 @@ class AttackSharkX11 {
 
 					if (battery <= 100) {
 						cleanup();
-						resolve(battery);
+						return resolve(battery);
 					}
 				}
 			};
 
 			const timeout = setTimeout(() => {
 				cleanup();
-				reject(new TimeoutError('Timeout waiting for battery report'));
+				return reject(new TimeoutError('Timeout waiting for battery report'));
 			}, timeoutMs);
 
 			endpoint.on('data', handleData);
@@ -230,7 +232,7 @@ class AttackSharkX11 {
 				endpoint.startPoll(1, 64);
 			} catch (err) {
 				cleanup();
-				reject(err);
+				return reject(err);
 			}
 		});
 	}
