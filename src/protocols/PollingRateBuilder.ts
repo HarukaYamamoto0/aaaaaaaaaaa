@@ -8,7 +8,7 @@ export enum Rate {
 	eSports = 1000,
 }
 
-export interface PollingRateOptions {
+export interface PollingRateBuilderOptions {
 	rate?: Rate;
 }
 
@@ -16,7 +16,7 @@ export interface PollingRateOptions {
  * Builder for configuring the Polling Rate
  */
 export class PollingRateBuilder implements BaseProtocolBuilder {
-	public static readonly DEFAULT_OPTIONS: PollingRateOptions = {
+	public static readonly DEFAULT_OPTIONS: PollingRateBuilderOptions = {
 		rate: Rate.eSports,
 	};
 	readonly buffer: Buffer = Buffer.alloc(64);
@@ -25,7 +25,7 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
 	public readonly wValue: number = 0x0306;
 	public readonly wIndex: number = 2;
 
-	constructor(options: PollingRateOptions = { rate: Rate.eSports }) {
+	constructor(options: PollingRateBuilderOptions = { rate: Rate.eSports }) {
 		this.buffer = Buffer.alloc(9);
 		this.buffer[0] = 0x06; // header
 		this.buffer[1] = 0x09; // header

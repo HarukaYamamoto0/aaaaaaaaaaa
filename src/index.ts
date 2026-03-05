@@ -7,3 +7,4 @@ export * from './protocols/PollingRateBuilder.js';
 export * from './protocols/UserPreferencesBuilder.js';
 export * from './types.js';
 export * from './utils/delay.js';
+export * from './logger/index.js';

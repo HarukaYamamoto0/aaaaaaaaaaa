@@ -7,18 +7,16 @@ import {
 	DpiBuilder,
 	KeyCode,
 	LightMode,
+	logger,
 	MacroMode,
 	MacroName,
 	MacrosBuilder,
 	macroTemplates,
+	PollingRateBuilder,
 	Rate,
 } from './src/index.js';
-import { ConsoleLogger, logger } from './src/logger/index.js';
 
-const driver = new AttackSharkX11({
-	connectionMode: ConnectionMode.Adapter,
-	logger: new ConsoleLogger('debug'),
-});
+const driver = new AttackSharkX11({ connectionMode: ConnectionMode.Adapter });
 const delayMS = 250;
 
 try {
@@ -38,7 +36,7 @@ try {
 	await driver.setDpi(dpiBuilder);
 	await delay(delayMS);
 
-	const pollingRateBuilder = driver.createPollingRateBuilder().setRate(Rate.eSports);
+	const pollingRateBuilder = new PollingRateBuilder().setRate(Rate.eSports);
 
 	await driver.setPollingRate(pollingRateBuilder);
 	await delay(delayMS);

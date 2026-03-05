@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+    push:
+        branches: ["main", "dev"]
+    pull_request:
+        branches: ["main"]
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Cache dependencies
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.bun/install/cache
+                      node_modules
+                  key: bun-${{ runner.os }}-${{ hashFiles('bun.lockb') }}
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Check formatting
+              run: bun format
+
+            - name: Run ESLint
+              run: bun lint
+
+            - name: TypeScript typecheck
+              run: bunx tsc --noEmit

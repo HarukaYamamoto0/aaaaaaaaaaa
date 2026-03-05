@@ -1,5 +1,5 @@
-import type {BaseProtocolBuilder} from '../core/BaseProtocolBuilder.js';
-import {Button, type ConnectionMode} from '../types.js';
+import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { Button, type ConnectionMode } from '../types.js';
 import {
 	type KeyCode,
 	type MacroBuilderOptions,
@@ -120,7 +120,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		this.fourthPacket[10] = 0x00; // Big Endian Checksum
 		this.fourthPacket[11] = 0x00; // Big Endian Checksum
 
-		const config = {...CustomMacroBuilder.DEFAULT_OPTIONS, ...options};
+		const config = { ...CustomMacroBuilder.DEFAULT_OPTIONS, ...options };
 
 		this.defineMacroButton = CustomMacroBuilder.DEFAULT_OPTIONS.macrosBuilder as MacrosBuilder;
 		if (config.macrosBuilder !== undefined)
@@ -134,7 +134,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 	}
 
 	addEvent(key: KeyCode | MouseMacroEvent | number, delayMs: number = 10, isRelease: boolean = false): this {
-		const {eventDelay, extraDelay} = this.handleDelay(delayMs);
+		const { eventDelay, extraDelay } = this.handleDelay(delayMs);
 		this.pushEventBytes(isRelease ? 0x80 | eventDelay : eventDelay, key);
 		if (extraDelay) {
 			this.pushEventBytes(extraDelay, 0x03);
@@ -262,11 +262,11 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 		const computeByte = (ms: number): number => 2 * Math.floor((ms + 5) / 20) + 1;
 
 		if (delayMs <= 1070) {
-			return {eventDelay: computeByte(delayMs)};
+			return { eventDelay: computeByte(delayMs) };
 		} else {
 			const extraUnits = Math.floor(delayMs / 200);
 			const rem = delayMs % 200;
-			return {eventDelay: computeByte(rem), extraDelay: extraUnits};
+			return { eventDelay: computeByte(rem), extraDelay: extraUnits };
 		}
 	}
 }

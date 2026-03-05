@@ -19,7 +19,7 @@ import {
 } from '../types.js';
 import { bufferStartsWith } from '../utils/bufferUtils.js';
 import { delay } from '../utils/delay.js';
-import { logger as log } from '../logger/index.js';
+import { ConsoleLogger } from '../logger/index.js';
 
 const VID = 0x1d57;
 const DEVICE_INTERFACE = 0x02;
@@ -34,19 +34,21 @@ class AttackSharkX11 {
 	private lastBattery: number = -1;
 	private logger: Logger;
 
-	constructor(connectionMode: ConnectionMode, logger: Logger = log) {
-		if (!connectionMode) {
+	constructor(options: { connectionMode: ConnectionMode; logger?: Logger }) {
+		if (!options.connectionMode) {
 			throw new DriverError('The type of connection was not specified');
 		}
 
-		this.logger = logger;
+		this.logger = options.logger ?? new ConsoleLogger();
 
 		const device = usb
 			.getDeviceList()
-			.find((d) => d.deviceDescriptor.idVendor === VID && d.deviceDescriptor.idProduct === connectionMode);
+			.find(
+				(d) => d.deviceDescriptor.idVendor === VID && d.deviceDescriptor.idProduct === options.connectionMode,
+			);
 
 		if (!device) {
-			throw new DeviceError(`Device with idProduct ${connectionMode} not found`);
+			throw new DeviceError(`Device with idProduct ${options.connectionMode} not found`);
 		}
 
 		this.device = device;
