@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ConnectionMode, DpiBuilder } from '../src/index.js';
+import { ConnectionMode, DpiBuilder, ParamsError } from '../src/index.js';
 
 describe('DpiBuilder', () => {
 	it('should initialize with default buffer', () => {
@@ -52,7 +52,7 @@ describe('DpiBuilder', () => {
 		expect(builder.buffer[9]).toBe(0x25);
 
 		// Test throw for unsupported DPI
-		expect(() => builder.setDpiValue(1, 99999)).toThrow();
+		expect(() => builder.setDpiValue(1, 99999)).toThrow(ParamsError);
 	});
 
 	it('should update stage mask and high stage flags during build', () => {

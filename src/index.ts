@@ -1,5 +1,5 @@
 export * from './core/AttackSharkX11.js';
-export { default as AttackSharkX11 } from './core/AttackSharkX11.js';
+export * from './core/BaseProtocolBuilder.js';
 export * from './protocols/CustomMacroBuilder.js';
 export * from './protocols/DpiBuilder.js';
 export * from './protocols/MacrosBuilder.js';
@@ -8,3 +8,4 @@ export * from './protocols/UserPreferencesBuilder.js';
 export * from './types.js';
 export * from './utils/delay.js';
 export * from './logger/index.js';
+export * from './errors.js';

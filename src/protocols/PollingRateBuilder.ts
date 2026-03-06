@@ -1,4 +1,5 @@
 import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { ParamsError } from '../errors.js';
 import type { ConnectionMode } from '../types.js';
 
 export enum Rate {
@@ -69,6 +70,8 @@ export class PollingRateBuilder implements BaseProtocolBuilder {
 		const value = rateMap[rate];
 		if (value !== undefined) {
 			this.buffer[3] = value;
+		} else {
+			throw new ParamsError('rate', `Unsupported Polling Rate: ${rate}`);
 		}
 
 		return this;

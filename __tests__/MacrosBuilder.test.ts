@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { Button, ConnectionMode, FirmwareAction, MacroName, MacrosBuilder, macroTemplates } from '../src/index.js';
+import {
+	Button,
+	ConnectionMode,
+	ParamsError,
+	FirmwareAction,
+	MacroName,
+	MacrosBuilder,
+	macroTemplates,
+} from '../src/index.js';
 
 describe('MacrosBuilder', () => {
 	it('should initialize with default buffer', () => {
@@ -91,7 +99,7 @@ describe('MacrosBuilder', () => {
 		const builder = new MacrosBuilder();
 		// @ts-expect-error test
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		expect(() => builder.setMacro(99 as any, [0, 0, 0])).toThrow('Invalid button identifier: 99');
+		expect(() => builder.setMacro(99 as any, [0, 0, 0])).toThrow(ParamsError);
 	});
 
 	it('should initialize with custom options in constructor', () => {
