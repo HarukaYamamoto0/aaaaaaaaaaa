@@ -1,4 +1,5 @@
 import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { ParamsError } from '../errors.js';
 import { DPI_STEP_MAP } from '../tables/dpi-map.js';
 import { ConnectionMode } from '../types.js';
 
@@ -44,7 +45,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
 	public readonly bRequest: number = 0x09;
 	public readonly wValue: number = 0x0304;
 	public readonly wIndex: number = 2;
-	stages: [number, number, number, number, number, number] = [800, 1600, 2400, 3200, 5000, 22000];
+	private stages: [number, number, number, number, number, number] = [800, 1600, 2400, 3200, 5000, 22000];
 
 	// noinspection FunctionTooLongJS
 	constructor(options?: DpiBuilderOptions) {
@@ -183,7 +184,10 @@ export class DpiBuilder implements BaseProtocolBuilder {
 	 */
 	public setStages(stages: [number, number, number, number, number, number]): this {
 		if (!Array.isArray(stages) || stages.length !== this.stages.length)
-			throw new Error(`You need to pass the 6 DPI values; e.g.: [800, 1600, 2400, 3200, 5000, 22000]`);
+			throw new ParamsError(
+				'stages',
+				`You need to pass the 6 DPI values; e.g.: [800, 1600, 2400, 3200, 5000, 22000]`,
+			);
 
 		for (let i = 0; i < stages.length; i++) {
 			this.setDpiValue((i + 1) as StageIndex, stages[i] ?? 0x00);
@@ -208,9 +212,6 @@ export class DpiBuilder implements BaseProtocolBuilder {
 		const checksum = this.calculateChecksum();
 		this.buffer.writeUInt16BE(checksum, OFFSET.CHECKSUM_HIGH_BYTE);
 
-		// this.buffer[OFFSET.CHECKSUM_HIGH_BYTE] = (checksum >> 8) & 0xff;
-		// this.buffer[OFFSET.CHECKSUM_LOW_BYTE] = checksum & 0xff;
-
 		return mode === ConnectionMode.Wired ? this.buffer.subarray(0, OFFSET.CHECKSUM_LOW_BYTE + 1) : this.buffer;
 	}
 
@@ -230,7 +231,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
 		const match = keys.find((k) => k >= dpi);
 
 		if (match === undefined) {
-			throw new Error(`Unsupported DPI: ${dpi}`);
+			throw new ParamsError('dpi', `Unsupported DPI: ${dpi}`);
 		}
 
 		return DPI_STEP_MAP[match] ?? 0x00;

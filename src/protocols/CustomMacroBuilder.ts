@@ -1,4 +1,5 @@
 import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { ParamsError } from '../errors.js';
 import { Button, type ConnectionMode } from '../types.js';
 import {
 	type KeyCode,
@@ -155,7 +156,8 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 			return this;
 		}
 		if (times < 1 || times > 255) {
-			throw new Error(
+			throw new ParamsError(
+				'times',
 				'The number of loops must be at least 1 (0x01) and at most 255 (0xFF), regardless of the mode',
 			);
 		}
@@ -194,7 +196,7 @@ export class CustomMacroBuilder implements BaseProtocolBuilder {
 				macroTemplate = macroTemplates[MacroName.CUSTOM_MACRO_EXTRA_BUTTON_5];
 				break;
 			default:
-				throw new Error('Unsupported button');
+				throw new ParamsError('button', `Unsupported button for custom macro: ${button}`);
 		}
 
 		this.defineMacroButton.setMacro(button, macroTemplate);

@@ -25,7 +25,7 @@ const VID = 0x1d57;
 const DEVICE_INTERFACE = 0x02;
 const INTERRUPT_ENDPOINT = 0x83;
 
-class AttackSharkX11 {
+export class AttackSharkX11 {
 	public readonly productId: number;
 	device: Device;
 	deviceInterface!: Interface;
@@ -104,10 +104,13 @@ class AttackSharkX11 {
 						new InterfaceError(
 							`Could not claim interface ${DEVICE_INTERFACE}. On Windows, you might need to use Zadig to install WinUSB driver for Interface ${DEVICE_INTERFACE}.`,
 							DEVICE_INTERFACE,
+							{ cause: e },
 						),
 					);
 				}
-				throw e;
+				return reject(
+					new InterfaceError(`Could not claim interface ${DEVICE_INTERFACE}`, DEVICE_INTERFACE, { cause: e }),
+				);
 			}
 
 			const interruptEndpoint = iface.endpoints.find((e) => e.address === INTERRUPT_ENDPOINT);
@@ -135,7 +138,11 @@ class AttackSharkX11 {
 		await new Promise<void>((resolve, reject) => {
 			this.deviceInterface.release(true, (err) => {
 				if (err) {
-					reject(new InterfaceError('Error releasing interface', this.deviceInterface.interfaceNumber));
+					reject(
+						new InterfaceError('Error releasing interface', this.deviceInterface.interfaceNumber, {
+							cause: err,
+						}),
+					);
 					return;
 				}
 
@@ -298,7 +305,7 @@ class AttackSharkX11 {
 			wValue: 0x0308,
 			wIndex: 2,
 		});
-		await delay(250);
+		await delay(250); // TODO: Take another look at the delays to use the shortest safe time
 
 		await this.controlTransfer({
 			data: secondPacket,

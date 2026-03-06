@@ -1,4 +1,5 @@
 import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { ParamsError } from '../errors.js';
 import { Button, type ConnectionMode } from '../types.js';
 
 export type MacroTuple = readonly [FirmwareAction, Modifiers, KeyCode | number];
@@ -443,7 +444,7 @@ export class MacrosBuilder implements BaseProtocolBuilder {
 
 		const offset = BUTTON_OFFSET[internalButton];
 		if (offset === undefined) {
-			throw new Error(`Invalid button identifier: ${button}`);
+			throw new ParamsError('button', `Invalid button identifier: ${button}`);
 		}
 
 		this.buffer[offset] = firmwareAction;

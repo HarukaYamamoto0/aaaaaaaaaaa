@@ -1,4 +1,5 @@
 import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
+import { ParamsError } from '../errors.js';
 import { ConnectionMode } from '../types.js';
 
 /**
@@ -268,7 +269,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 		deepSleepTime: 10,
 		keyResponse: 4,
 	};
-	public readonly buffer: Buffer;
+	readonly buffer: Buffer;
 	public readonly bmRequestType: number = 0x21;
 	public readonly bRequest: number = 0x09;
 	public readonly wValue: number = 0x0305;
@@ -320,7 +321,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 	 */
 	setDeepSleep(minutes: DeepSleepTime): this {
 		if (minutes < 1 || minutes > 60) {
-			throw new Error('the minutes of deep sleep should be in the range of 1 to 60');
+			throw new ParamsError('deepSleepTime', 'the minutes of deep sleep should be in the range of 1 to 60');
 		}
 		this.deepSleepMinutes = minutes;
 		this.updateIndex4();
@@ -334,7 +335,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 	 */
 	setLedSpeed(speed: LedSpeed): this {
 		if (speed < 1 || speed > 5) {
-			throw new Error('LED speed must be between 1 and 5');
+			throw new ParamsError('ledSpeed', 'LED speed must be between 1 and 5');
 		}
 		this.ledSpeed = speed;
 		this.updateIndex4();
@@ -361,7 +362,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 	 */
 	setSleep(minutes: SleepTime): this {
 		if (minutes < 0.5 || minutes > 30) {
-			throw new Error('Invalid sleep value (0.5–30 min)');
+			throw new ParamsError('sleepTime', 'Invalid sleep value (0.5–30 min)');
 		}
 		this.buffer[9] = Math.round(minutes * 2);
 		return this;
@@ -373,7 +374,7 @@ export class UserPreferencesBuilder implements BaseProtocolBuilder {
 	 */
 	setKeyResponse(ms: KeyResponse): this {
 		if (ms < 4 || ms > 50 || ms % 2 !== 0) {
-			throw new Error('Invalid value (use 4–50ms, step 2)');
+			throw new ParamsError('keyResponse', 'Invalid value (use 4–50ms, step 2)');
 		}
 
 		this.buffer[10] = (ms - 4) / 2 + 0x02;
