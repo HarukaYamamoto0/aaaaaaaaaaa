@@ -2,7 +2,7 @@ import type { BaseProtocolBuilder } from '../core/BaseProtocolBuilder.js';
 import { DPI_STEP_MAP } from '../tables/dpi-map.js';
 import { ConnectionMode } from '../types.js';
 
-const OFFSET = {
+const OFFSET = Object.freeze({
 	ANGLE_SNAP: 3,
 	RIPPLER_CONTROL: 4,
 	STAGE_MASK_A: 6,
@@ -12,7 +12,7 @@ const OFFSET = {
 	CHECKSUM_HIGH_BYTE: 50,
 	CHECKSUM_LOW_BYTE: 51,
 	STAGES_START: 8,
-} as const;
+});
 
 /**
  * Represents a stage index that can have one of the preset integer values.
@@ -39,7 +39,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
 		dpiValues: [800, 1600, 2400, 3200, 5000, 22000],
 		activeStage: 2,
 	};
-	readonly buffer: Buffer = Buffer.alloc(64);
+	readonly buffer: Buffer;
 	public readonly bmRequestType: number = 0x21;
 	public readonly bRequest: number = 0x09;
 	public readonly wValue: number = 0x0304;
@@ -206,9 +206,10 @@ export class DpiBuilder implements BaseProtocolBuilder {
 		this.updateHighStageFlags();
 
 		const checksum = this.calculateChecksum();
+		this.buffer.writeUInt16BE(checksum, OFFSET.CHECKSUM_HIGH_BYTE);
 
-		this.buffer[OFFSET.CHECKSUM_HIGH_BYTE] = (checksum >> 8) & 0xff;
-		this.buffer[OFFSET.CHECKSUM_LOW_BYTE] = checksum & 0xff;
+		// this.buffer[OFFSET.CHECKSUM_HIGH_BYTE] = (checksum >> 8) & 0xff;
+		// this.buffer[OFFSET.CHECKSUM_LOW_BYTE] = checksum & 0xff;
 
 		return mode === ConnectionMode.Wired ? this.buffer.subarray(0, OFFSET.CHECKSUM_LOW_BYTE + 1) : this.buffer;
 	}
@@ -240,6 +241,7 @@ export class DpiBuilder implements BaseProtocolBuilder {
 		let mask = 0x00;
 
 		for (let i = 0; i < this.stages.length; i++) {
+			// Mask bit is set if DPI is greater than 12,000
 			if ((this.stages[i] ?? 0x00) > 12000) {
 				mask |= bitValues[i] ?? 0x00;
 			}
@@ -251,7 +253,14 @@ export class DpiBuilder implements BaseProtocolBuilder {
 
 	private updateHighStageFlags(): void {
 		for (let i = 0; i < this.stages.length; i++) {
-			this.buffer[OFFSET.EXPANDED_MASK + i] = (this.stages[i] ?? 0x00) > 10000 ? 0x01 : 0x00;
+			const dpi = this.stages[i] ?? 0x00;
+			// See docs/samples/dpi-stage-mask.txt:
+			// Bytes 16-21 (High Stage Flags) are set to 0x01 if DPI is in range [10100, 12000] or [20100, 22000]
+			if ((dpi >= 10100 && dpi <= 12000) || (dpi >= 20100 && dpi <= 22000)) {
+				this.buffer[OFFSET.EXPANDED_MASK + i] = 0x01;
+			} else {
+				this.buffer[OFFSET.EXPANDED_MASK + i] = 0x00;
+			}
 		}
 	}
 }

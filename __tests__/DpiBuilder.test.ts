@@ -58,27 +58,37 @@ describe('DpiBuilder', () => {
 	it('should update stage mask and high stage flags during build', () => {
 		const builder = new DpiBuilder();
 
-		// Default stages: 800, 1600, 2400, 3200, 5000, 22000
-		// 22000 is > 10000 and > 12000
-		// High stage flags (index 16-21) for values > 10000
-		// Stage mask (index 6-7) for values > 12000
+		// Default stages: 800, 1600, 2400, 3200, 5000, 22,000
+		// 22,000 is in range [20,100, 22,000], so the high flag should be 1
+		// 22,000 is > 12000, so mask bit 5 (0x20) should be set
 
 		builder.build(ConnectionMode.Wired);
 
-		// 22000 (stage 6) is > 10000, so index 21 (16 + 5) should be 1
-		expect(builder.buffer[21]).toBe(0x01);
-		expect(builder.buffer[20]).toBe(0x00); // 5000 is not > 10000
+		// Stage 6 (index 5) is 22,000
+		expect(builder.buffer[21]).toBe(0x01); // High flag stage 6
+		expect(builder.buffer[20]).toBe(0x00); // 5000 is not in ranges
 
-		// 22000 is > 12000, so mask should be 0x20 (bit 5)
+		// 22,000 is > 12,000, so the mask should be 0x20 (bit 5)
 		expect(builder.buffer[6]).toBe(0x20);
 		expect(builder.buffer[7]).toBe(0x20);
 
-		// Now set stage 1 to 15000 (> 10000 and > 12000)
-		builder.setDpiValue(1, 15000);
+		// Test Range A: 10,100 - 12,000
+		builder.setDpiValue(1, 10100);
 		builder.build(ConnectionMode.Wired);
+		expect(builder.buffer[16]).toBe(0x01); // High flag stage 1 active
+		expect(builder.buffer[6]).toBe(0x20); // Mask stage 1 NOT active (10,100 <= 12,000)
 
-		expect(builder.buffer[16]).toBe(0x01); // High flag stage 1
-		expect(builder.buffer[6]).toBe(0x21); // Mask stage 1 bit (0x01) | stage 6 bit (0x20) = 0x21
+		// Test Range B: 20100 - 22000
+		builder.setDpiValue(2, 20500);
+		builder.build(ConnectionMode.Wired);
+		expect(builder.buffer[17]).toBe(0x01); // High flag stage 2 active
+		expect(builder.buffer[6]).toBe(0x22); // Mask stage 2 active (20500 > 12000) | stage 6 (0x20) = 0x22
+
+		// Test value between ranges: 15,000
+		builder.setDpiValue(3, 15000);
+		builder.build(ConnectionMode.Wired);
+		expect(builder.buffer[18]).toBe(0x00); // High flag stage 3 NOT active
+		expect(builder.buffer[6]).toBe(0x26); // Mask stage 3 active (15,000 > 12,000) | 0x22 = 0x26
 	});
 
 	it('should calculate correct checksum', () => {
