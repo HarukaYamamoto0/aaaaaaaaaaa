@@ -30,16 +30,27 @@ export class AttackSharkX11 {
 	device: Device;
 	deviceInterface!: Interface;
 	interruptEndpoint!: InEndpoint;
+	/**
+	 * Delay in milliseconds between packets to prevent the device from locking up.
+	 */
+	public readonly delayMs: number;
 	private isOpen: boolean = false;
 	private lastBattery: number = -1;
 	private logger: Logger;
 
-	constructor(options: { connectionMode: ConnectionMode; logger?: Logger }) {
+	/**
+	 * @param options Configuration options for the driver
+	 * @param options.connectionMode Connection mode (Wired or Adapter)
+	 * @param options.logger Optional custom logger
+	 * @param options.delayMs Optional delay in milliseconds between packets to prevent lock-up (default: 250)
+	 */
+	constructor(options: { connectionMode: ConnectionMode; logger?: Logger; delayMs?: number }) {
 		if (!options.connectionMode) {
 			throw new DriverError('The type of connection was not specified');
 		}
 
 		this.logger = options.logger ?? new ConsoleLogger();
+		this.delayMs = options.delayMs ?? 250;
 
 		const device = usb
 			.getDeviceList()
@@ -160,31 +171,38 @@ export class AttackSharkX11 {
 
 	controlTransfer(options: ControlTransferIn): Promise<Buffer>;
 	controlTransfer(options: ControlTransferOut): Promise<number>;
-	controlTransfer(options: ControlTransferOptions): Promise<number | Buffer> {
+	async controlTransfer(options: ControlTransferOptions): Promise<number | Buffer> {
 		this.checkIsOpen();
 
-		return new Promise((resolve, reject) => {
+		const result = await new Promise<number | Buffer>((resolve, reject) => {
 			this.device.controlTransfer(
 				options.bmRequestType,
 				options.bRequest,
 				options.wValue,
 				options.wIndex,
 				options.data,
-				(err, result) => {
+				(err, res) => {
 					if (err) {
 						reject(new ControlTransferError('Control transfer failed', { cause: err }));
 						return;
 					}
 
-					if (result === undefined) {
+					if (res === undefined) {
 						reject(new ControlTransferError('Control transfer returned undefined'));
 						return;
 					}
 
-					resolve(result);
+					resolve(res);
 				},
 			);
 		});
+
+		// If it's an output transfer (writing to a device), we apply a delay to prevent packet flooding
+		if (Buffer.isBuffer(options.data)) {
+			await delay(this.delayMs);
+		}
+
+		return result;
 	}
 
 	getBatteryLevel(timeoutMs = 1000): Promise<number> {
@@ -305,7 +323,6 @@ export class AttackSharkX11 {
 			wValue: 0x0308,
 			wIndex: 2,
 		});
-		await delay(250); // TODO: Take another look at the delays to use the shortest safe time
 
 		await this.controlTransfer({
 			data: secondPacket,
@@ -314,7 +331,6 @@ export class AttackSharkX11 {
 			wValue: builder.wValue,
 			wIndex: builder.wIndex,
 		});
-		await delay(500);
 
 		await this.controlTransfer({
 			data: thirdPacket,
@@ -323,7 +339,6 @@ export class AttackSharkX11 {
 			wValue: builder.wValue,
 			wIndex: builder.wIndex,
 		});
-		await delay(500);
 
 		await this.controlTransfer({
 			data: fourthPacket,
@@ -453,15 +468,10 @@ export class AttackSharkX11 {
 	async reset(): Promise<void> {
 		this.checkIsOpen();
 		await this.sendInternalStateResetReportBuilder();
-		await delay(250);
 		await this.resetDpi();
-		await delay(250);
 		await this.resetUserPreferences();
-		await delay(250);
 		await this.resetPollingRate();
-		await delay(250);
 		await this.resetMacro();
-		await delay(250);
 		await this.resetCustomMacro();
 	}
 }
