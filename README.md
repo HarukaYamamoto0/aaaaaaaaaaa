@@ -39,7 +39,7 @@ Protocol documentation and captured traffic samples can be found in `docs/`
 Currently tested with:
 
 | Device           | Mode            | Status     |
-|------------------|-----------------|------------|
+| ---------------- | --------------- | ---------- |
 | Attack Shark X11 | Wired           | Supported  |
 | Attack Shark X11 | 2.4GHz wireless | Supported  |
 | Attack Shark X11 | Bluetooth       | Not tested |
@@ -47,7 +47,7 @@ Currently tested with:
 Some other models may share the same protocol:
 
 | Device          | Status              |
-|-----------------|---------------------|
+| --------------- | ------------------- |
 | Attack Shark R1 | Possibly compatible |
 
 Additional testing and reverse engineering would be required.
@@ -62,18 +62,18 @@ Legend
 ❌ Not implemented
 
 | Feature           | Description                  | Status |
-|-------------------|------------------------------|--------|
-| Button remapping  | Change button behavior       | ✅      |
-| Macro manager     | Create custom macros         | ✅      |
-| Battery status    | Display device battery level | ✅      |
-| Reset profile     | Restore profile defaults     | ✅      |
-| DPI configuration | Configure DPI stages         | ✅      |
-| Lighting control  | LED configuration            | ✅      |
-| Polling rate      | 125 / 250 / 500 / 1000 Hz    | ✅      |
-| Power manager     | Configure sleep timers       | ✅      |
-| Key response time | 4ms – 50ms                   | ✅      |
-| Ripple control    | Enable / disable             | ✅      |
-| Angle snap        | Enable / disable             | ✅      |
+| ----------------- | ---------------------------- | ------ |
+| Button remapping  | Change button behavior       | ✅     |
+| Macro manager     | Create custom macros         | ✅     |
+| Battery status    | Display device battery level | ✅     |
+| Reset profile     | Restore profile defaults     | ✅     |
+| DPI configuration | Configure DPI stages         | ✅     |
+| Lighting control  | LED configuration            | ✅     |
+| Polling rate      | 125 / 250 / 500 / 1000 Hz    | ✅     |
+| Power manager     | Configure sleep timers       | ✅     |
+| Key response time | 4ms – 50ms                   | ✅     |
+| Ripple control    | Enable / disable             | ✅     |
+| Angle snap        | Enable / disable             | ✅     |
 
 ## Important ⚠️
 
