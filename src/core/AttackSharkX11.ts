@@ -127,6 +127,10 @@ export class AttackSharkX11 extends EventEmitter<AttackSharkX11Events> {
 			this.deviceInterface = iface;
 
 			try {
+				if (iface.isKernelDriverActive()) {
+					iface.detachKernelDriver();
+				}
+
 				iface.claim();
 			} catch (e: unknown) {
 				this.logger.error('An unexpected error occurred', e);
